@@ -451,16 +451,33 @@
 
     <div id="screen-ai-chat" class="hidden">
       <h2>שיחה עם ה-AI 🤖</h2>
-      <p style="margin-bottom:10px;">כתבו לו משפט באנגלית — הוא ישוחח איתכם, יתקן מילים שגויות בעדינות, ויכול לתרגם כל הודעה ללחיצת כפתור.</p>
+      <p style="margin-bottom:10px;">כתבו לו משפט באנגלית או בעברית — הוא תמיד יענה באנגלית, עם תרגום לעברית מתחת לכל תשובה, ויתקן מילים שגויות בעדינות.</p>
       <div id="ai-unavailable" class="hidden feedback-box" style="margin-bottom:14px;"></div>
-      <div id="ai-chat-log"></div>
-      <div id="ai-check-box" class="hidden feedback-box" style="margin-bottom:10px;"></div>
-      <div class="field" style="margin-bottom:8px;">
-        <input type="text" id="ai-chat-input" placeholder="כתבו כאן משפט באנגלית..." dir="ltr" style="text-align:left; font-family:'Fraunces',serif;" onkeydown="if(event.key==='Enter'){event.preventDefault(); sendAIChat();}">
+
+      <div id="ai-fallback" class="hidden">
+        <h3 style="margin-bottom:6px;">📖 מילון מקומי (בלי אינטרנט/AI)</h3>
+        <p style="margin-bottom:10px;">כתבו מילה באנגלית או בעברית מתוך 465 המילים שבאפליקציה, ותקבלו תרגום, דוגמה — ואם טעיתם קצת באיות, הצעה למילה הכי דומה.</p>
+        <div class="field" style="margin-bottom:8px;">
+          <input type="text" id="fallback-word-input" placeholder="כתבו מילה באנגלית או בעברית..." dir="auto" style="font-family:'Assistant',sans-serif;" onkeydown="if(event.key==='Enter'){event.preventDefault(); fallbackDictLookup();}">
+        </div>
+        <button class="btn" onclick="fallbackDictLookup()">חפש במילון</button>
+        <div id="fallback-result" class="hidden feedback-box" style="margin-top:12px;"></div>
       </div>
-      <div class="btn-row" style="margin-top:0;">
-        <button class="btn secondary" id="ai-check-btn" onclick="checkAISentence()">בדוק לי משפט</button>
-        <button class="btn" id="ai-send-btn" onclick="sendAIChat()">שלח</button>
+
+      <div id="ai-chat-live" class="hidden">
+        <label id="ai-voice-toggle-row" class="hidden" style="display:flex; align-items:center; gap:8px; margin-bottom:6px; font-size:.9rem; color:var(--ink-soft); cursor:pointer;">
+          <input type="checkbox" id="ai-voice-toggle" style="width:auto; accent-color:var(--teal);"> הקראה קולית של תשובות ה-AI
+        </label>
+        <p id="ai-mic-tip" style="font-size:.82rem; margin-bottom:14px;">💡 טיפ: כדי לדבר במקום להקליד — אפשר להשתמש בכפתור המיקרופון שבמקלדת שלכם (בדרך כלל ליד מקש הרווח) כדי להכתיב את המשפט ישירות לתיבה למטה.</p>
+        <div id="ai-chat-log"></div>
+        <div id="ai-check-box" class="hidden feedback-box" style="margin-bottom:10px;"></div>
+        <div class="field" style="margin-bottom:8px;">
+          <input type="text" id="ai-chat-input" placeholder="כתבו כאן משפט באנגלית או בעברית..." dir="auto" style="font-family:'Assistant',sans-serif;" onkeydown="if(event.key==='Enter'){event.preventDefault(); sendAIChat();}">
+        </div>
+        <div class="btn-row" style="margin-top:0;">
+          <button class="btn secondary" id="ai-check-btn" onclick="checkAISentence()">בדוק לי משפט</button>
+          <button class="btn" id="ai-send-btn" onclick="sendAIChat()">שלח</button>
+        </div>
       </div>
       <button class="link-small" onclick="goHome()">חזרה לעמוד הבית</button>
     </div>
@@ -1846,34 +1863,122 @@ async function ensureAISample() {
 async function showAIChat() {
   showScreen('screen-ai-chat');
   const unavail = document.getElementById('ai-unavailable');
+  const fallback = document.getElementById('ai-fallback');
+  const chatLive = document.getElementById('ai-chat-live');
   const sendBtn = document.getElementById('ai-send-btn');
   const checkBtn = document.getElementById('ai-check-btn');
   const input = document.getElementById('ai-chat-input');
+  const voiceRow = document.getElementById('ai-voice-toggle-row');
   unavail.classList.add('hidden');
+  if ('speechSynthesis' in window) voiceRow.classList.remove('hidden');
   const sample = await ensureAISample();
   if (!sample) {
     unavail.classList.remove('hidden');
-    unavail.textContent = 'תכונת ה-AI זמינה כרגע רק כשפותחים את האפליקציה דרך הקישור המפורסם ומחוברים לחשבון Claude (בחינם). כל שאר חלקי האפליקציה עובדים כרגיל בלי זה.';
-    sendBtn.disabled = true; checkBtn.disabled = true; input.disabled = true;
+    unavail.textContent = 'שיחה חופשית עם AI זמינה רק כשפותחים את האפליקציה דרך הקישור המפורסם ומחוברים לחשבון Claude (בחינם). בינתיים אפשר להשתמש בכלי הבסיסי הבא, שעובד לגמרי בלי אינטרנט:';
+    chatLive.classList.add('hidden');
+    fallback.classList.remove('hidden');
     return;
   }
+  fallback.classList.add('hidden');
+  chatLive.classList.remove('hidden');
   sendBtn.disabled = false; checkBtn.disabled = false; input.disabled = false;
   if (aiChatTurns.length === 0) renderAIWelcome();
+}
+
+function levenshteinDistance(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i-1] === b[j-1] ? dp[i-1][j-1] : 1 + Math.min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]);
+    }
+  }
+  return dp[m][n];
+}
+
+function fallbackDictLookup() {
+  const input = document.getElementById('fallback-word-input');
+  const box = document.getElementById('fallback-result');
+  const q = input.value.trim();
+  if (!q) return;
+  box.classList.remove('hidden');
+  box.innerHTML = '';
+  const isHebrewQuery = /[\u0590-\u05FF]/.test(q);
+
+  const renderEntry = (v, prefix) => {
+    if (prefix) {
+      const p = document.createElement('div');
+      p.style.marginBottom = '6px';
+      p.textContent = prefix;
+      box.appendChild(p);
+    }
+    const engLine = document.createElement('div');
+    engLine.style.cssText = "font-family:'Fraunces',serif; font-size:1.15rem; font-weight:700; direction:ltr; text-align:left;";
+    engLine.textContent = v.w;
+    const hebLine = document.createElement('div');
+    hebLine.style.marginTop = '3px';
+    hebLine.textContent = 'בעברית: ' + v.t;
+    const exLine = document.createElement('div');
+    exLine.style.cssText = "margin-top:6px; font-style:italic; direction:ltr; text-align:left; font-family:'Fraunces',serif; opacity:.85;";
+    exLine.textContent = v.ex;
+    box.appendChild(engLine); box.appendChild(hebLine); box.appendChild(exLine);
+  };
+
+  if (isHebrewQuery) {
+    const match = VOCAB.find(v => v.t.includes(q));
+    if (match) { renderEntry(match, null); return; }
+    box.textContent = 'לא מצאנו את "' + q + '" במילון המובנה (465 מילים). נסו ניסוח אחר, או תרגלו דרך "אוצר מילים".';
+    return;
+  }
+
+  const qLower = q.toLowerCase();
+  const exact = VOCAB.find(v => v.w.toLowerCase() === qLower);
+  if (exact) { renderEntry(exact, null); return; }
+
+  let best = null, bestDist = Infinity;
+  VOCAB.forEach(v => {
+    const d = levenshteinDistance(qLower, v.w.toLowerCase());
+    if (d < bestDist) { bestDist = d; best = v; }
+  });
+  if (best && bestDist <= 2) {
+    renderEntry(best, 'לא מצאנו את "' + q + '" — האם התכוונת ל:');
+    return;
+  }
+  box.textContent = 'המילה "' + q + '" לא נמצאה במילון המובנה (465 מילים). נסו מילה אחרת, או תרגלו דרך "אוצר מילים".';
 }
 
 function renderAIWelcome() {
   const log = document.getElementById('ai-chat-log');
   log.innerHTML = '';
-  addAIBubble('assistant', "Hi! I'm here to practice English with you. Write me a sentence and I'll answer, help translate, and gently fix any word that's not quite right. How are you today?");
+  const welcome = "Hi! I'm here to practice English with you. Write me a sentence in English or Hebrew and I'll answer in English, with a Hebrew translation right underneath. How are you today?";
+  const welcomeHeb = "היי! אני כאן כדי לתרגל איתך אנגלית. כתבו לי משפט באנגלית או בעברית ואני אענה באנגלית, עם תרגום לעברית ממש למטה. מה שלומך היום?";
+  const bubble = addAIBubble('assistant', welcome, { noTranslate: true });
+  appendTranslationDiv(bubble, welcomeHeb);
+  if (document.getElementById('ai-voice-toggle').checked) speak(welcome);
 }
 
 function aiSystemPrompt() {
   const lvl = tierInfo(state.tier).name;
   return "You are a warm, patient English conversation partner and tutor for a Hebrew-speaking student learning English (current level: " + lvl + "). " +
-    "Reply only in English, in 2-4 short, simple sentences suited to that level. " +
-    "If the student uses an English word incorrectly or unnaturally, gently point it out in one short sentence, give the correct word, then continue the conversation naturally. " +
+    "The student may write to you in Hebrew or in English — either is fine. " +
+    "Always reply in English, in 2-4 short, simple sentences suited to that level. " +
+    "If the student wrote in Hebrew, understand what they meant and respond to its meaning naturally in English (do not just translate their sentence word for word). " +
+    "If the student wrote in English and used a word incorrectly or unnaturally, gently point it out in one short sentence, give the correct word, then continue the conversation naturally. " +
     "Fix at most one mistake per turn and never lecture about grammar rules. " +
-    "If the student explicitly asks for a translation of something, give a short Hebrew translation of just that part, then continue in English.\n\nStudent: ";
+    "Format your ENTIRE reply as exactly two lines and nothing else: " +
+    "the first line is your English reply; " +
+    "the second line starts with exactly \"HEB: \" followed by a natural, fluent Hebrew translation of that same English reply.\n\nStudent: ";
+}
+
+function appendTranslationDiv(bubble, hebrewText) {
+  const tDiv = document.createElement('div');
+  tDiv.className = 'ai-translation';
+  tDiv.textContent = hebrewText;
+  bubble.appendChild(tDiv);
+  const log = document.getElementById('ai-chat-log');
+  log.scrollTop = log.scrollHeight;
 }
 
 function addAIBubble(role, text, opts) {
@@ -1884,7 +1989,13 @@ function addAIBubble(role, text, opts) {
   const bubble = document.createElement('div');
   bubble.className = 'ai-bubble ' + role;
   bubble.textContent = text;
-  if (!opts.noTranslate) {
+  const isHebrew = role === 'user' && /[\u0590-\u05FF]/.test(text);
+  if (isHebrew) {
+    bubble.style.direction = 'rtl';
+    bubble.style.textAlign = 'right';
+    bubble.style.fontFamily = "'Assistant',sans-serif";
+  }
+  if (!opts.noTranslate && !isHebrew) {
     const link = document.createElement('span');
     link.className = 'ai-translate-link';
     link.textContent = '🔤 תרגם לעברית';
@@ -1942,8 +2053,14 @@ async function sendAIChat() {
   try {
     const result = await sample(aiChatTurns, { cache: false });
     thinking.remove();
-    addAIBubble('assistant', result.text.trim());
-    aiChatTurns.push({ role: 'assistant', content: result.text });
+    const raw = result.text.trim();
+    const match = raw.match(/^([\s\S]*?)\n+\s*HEB:\s*([\s\S]*)$/i);
+    const englishText = match ? match[1].trim() : raw;
+    const hebrewText = match ? match[2].trim() : null;
+    const bubble = addAIBubble('assistant', englishText, { noTranslate: !!hebrewText });
+    if (hebrewText) appendTranslationDiv(bubble, hebrewText);
+    aiChatTurns.push({ role: 'assistant', content: raw });
+    if (document.getElementById('ai-voice-toggle').checked) speak(englishText);
   } catch (e) {
     thinking.remove();
     let msg = 'משהו השתבש, נסו שוב.';
