@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מילון בדרך — לימוד אנגלית</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700&family=Assistant:wght@400;600;700&family=Fraunces:ital,wght@0,600;1,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #EFF3EC;
+    --paper: #FFFFFF;
+    --ink: #1E2A38;
+    --ink-soft: #52606B;
+    --gold: #D9A62E;
+    --teal: #2F6F62;
+    --teal-dark: #1E4A40;
+    --coral: #C24A3D;
+    --line: #D8DED9;
+    --shadow: rgba(30,42,56,0.10);
+    --radius: 18px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #131A17;
+      --paper: #1B2420;
+      --ink: #EDEFEA;
+      --ink-soft: #A8B3AC;
+      --gold: #E3B44A;
+      --teal: #5FA391;
+      --teal-dark: #7FBBA9;
+      --line: #2E3A34;
+      --shadow: rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #131A17;
+    --paper: #1B2420;
+    --ink: #EDEFEA;
+    --ink-soft: #A8B3AC;
+    --gold: #E3B44A;
+    --teal: #5FA391;
+    --teal-dark: #7FBBA9;
+    --line: #2E3A34;
+    --shadow: rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Assistant', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body {
+    display: flex;
+    justify-content: center;
+    padding: 28px 16px 60px;
+  }
+  .app {
+    width: 100%;
+    max-width: 460px;
+  }
+  .card {
+    background: var(--paper);
+    border-radius: var(--radius);
+    box-shadow: 0 10px 30px var(--shadow);
+    padding: 28px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    top: 0; right: 0; bottom: 0;
+    width: 10px;
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--gold) 0px, var(--gold) 14px,
+      transparent 14px, transparent 26px
+    );
+    opacity: 0.55;
+  }
+  h1, h2, h3 {
+    font-family: 'Frank Ruhl Libre', serif;
+    margin: 0 0 8px;
+    line-height: 1.25;
+  }
+  h1 { font-size: 1.7rem; color: var(--teal-dark); }
+  h2 { font-size: 1.3rem; }
+  p { color: var(--ink-soft); line-height: 1.6; margin: 0 0 16px; }
+  .eng {
+    direction: ltr;
+    display: inline-block;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 600;
+  }
+  .btn {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    background: var(--teal);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-family: 'Assistant', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.12s ease, opacity 0.12s ease;
+  }
+  .btn:hover { opacity: 0.92; }
+  .btn:active { transform: scale(0.98); }
+  .btn.secondary {
+    background: transparent;
+    color: var(--teal-dark);
+    border: 1.5px solid var(--line);
+  }
+  .btn.gold { background: var(--gold); color: #2B2107; }
+  .btn-row { display: flex; gap: 10px; margin-top: 18px; }
+  .btn-row .btn { flex: 1; }
+
+  .progress-bar {
+    height: 6px;
+    background: var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 22px;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--gold);
+    transition: width 0.25s ease;
+  }
+
+  .option {
+    display: block;
+    width: 100%;
+    text-align: right;
+    background: var(--bg);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 13px 16px;
+    margin-bottom: 10px;
+    font-size: 1rem;
+    color: var(--ink);
+    cursor: pointer;
+    font-family: 'Assistant', sans-serif;
+  }
+  .option:hover { border-color: var(--teal); }
+  .option.correct { background: #DCEEE6; border-color: var(--teal); }
+  .option.wrong { background: #F3DEDA; border-color: var(--coral); }
+
+  .badge {
+    display: inline-block;
+    background: var(--teal);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+  }
+
+  .stat-row { display: flex; gap: 12px; margin-bottom: 20px; }
+  .stat {
+    flex: 1;
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+  }
+  .stat .num { font-family: 'Frank Ruhl Libre', serif; font-size: 1.5rem; color: var(--teal-dark); }
+  .stat .lbl { font-size: 0.78rem; color: var(--ink-soft); }
+
+  .module-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 6px; }
+  .module-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg);
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 18px;
+    cursor: pointer;
+    text-align: right;
+  }
+  .module-card:hover { border-color: var(--teal); }
+  .module-card .icon { font-size: 1.6rem; margin-left: 12px; }
+  .module-card .txt { flex: 1; }
+  .module-card .title { font-weight: 700; }
+  .module-card .sub { font-size: 0.82rem; color: var(--ink-soft); }
+
+  .flash {
+    text-align: center;
+    padding: 30px 10px;
+    background: var(--bg);
+    border-radius: 14px;
+    margin-bottom: 18px;
+  }
+  .flash .word { font-family: 'Fraunces', serif; font-style: italic; font-size: 2.1rem; font-weight: 600; direction: ltr; }
+  .flash .translation { margin-top: 12px; font-size: 1.15rem; font-weight: 700; color: var(--teal-dark); min-height: 1.4em; }
+  .flash .example { margin-top: 10px; font-size: 0.9rem; color: var(--ink-soft); direction: ltr; }
+
+  .timer-badge {
+    float: left;
+    background: var(--coral);
+    color: #fff;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .hidden { display: none !important; }
+  .link-small {
+    display: block;
+    text-align: center;
+    margin-top: 14px;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+    background: none; border: none; width: 100%;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="card">
+
+    <!-- מסך פתיחה -->
+    <div id="screen-welcome">
+      <h1>מילון בדרך</h1>
+      <p>לומדים אנגלית בקצב שלכם — קודם נבין איפה אתם עומדים, ואז נתאים לכם תרגול.</p>
+      <button class="btn" onclick="startQuiz()">בואו נתחיל בשאלון קצר</button>
+    </div>
+
+    <!-- שאלון הערכה -->
+    <div id="screen-quiz" class="hidden">
+      <div class="progress-bar"><div class="progress-fill" id="quiz-progress"></div></div>
+      <h2 id="quiz-question"></h2>
+      <div id="quiz-options"></div>
+    </div>
+
+    <!-- תוצאת השאלון -->
+    <div id="screen-result" class="hidden" style="text-align:center;">
+      <div class="badge" id="result-badge"></div>
+      <h1 id="result-title"></h1>
+      <p id="result-text"></p>
+      <button class="btn" onclick="goHome()">למסך הבית</button>
+    </div>
+
+    <!-- מסך בית -->
+    <div id="screen-home" class="hidden">
+      <span class="badge" id="home-level-badge"></span>
+      <h1>שלום!</h1>
+      <div class="stat-row">
+        <div class="stat"><div class="num" id="home-mastered">0</div><div class="lbl">מילים נשלטות</div></div>
+        <div class="stat"><div class="num" id="home-highscore">0</div><div class="lbl">שיא במשחק</div></div>
+      </div>
+      <div class="module-grid">
+        <div class="module-card" onclick="startVocab()">
+          <div class="txt"><div class="title">אוצר מילים</div><div class="sub">כרטיסיות לימוד לפי הרמה שלכם</div></div>
+          <div class="icon">📚</div>
+        </div>
+        <div class="module-card" onclick="startGame()">
+          <div class="txt"><div class="title">משחק מהירות</div><div class="sub">30 שניות, כמה תדעו לענות נכון?</div></div>
+          <div class="icon">⚡</div>
+        </div>
+      </div>
+      <button class="link-small" onclick="restartAll()">איפוס התקדמות ובדיקת רמה מחדש</button>
+    </div>
+
+    <!-- מודול אוצר מילים -->
+    <div id="screen-vocab" class="hidden">
+      <div class="progress-bar"><div class="progress-fill" id="vocab-progress"></div></div>
+      <div class="flash">
+        <div class="word eng" id="vocab-word"></div>
+        <div class="translation" id="vocab-translation"></div>
+        <div class="example eng" id="vocab-example"></div>
+      </div>
+      <div id="vocab-reveal-row">
+        <button class="btn gold" onclick="revealVocab()">הצג תרגום</button>
+      </div>
+      <div id="vocab-know-row" class="btn-row hidden">
+        <button class="btn secondary" onclick="markVocab(false)">עוד לא ידעתי</button>
+        <button class="btn" onclick="markVocab(true)">ידעתי!</button>
+      </div>
+      <button class="link-small" onclick="goHome()">חזרה לעמוד הבית</button>
+    </div>
+
+    <!-- משחק מהירות -->
+    <div id="screen-game" class="hidden">
+      <span class="timer-badge" id="game-timer">30</span>
+      <h2 style="margin-top:34px;" id="game-question"></h2>
+      <div id="game-options"></div>
+    </div>
+
+    <!-- תוצאת משחק -->
+    <div id="screen-gameover" class="hidden" style="text-align:center;">
+      <div class="badge">סיום!</div>
+      <h1 id="gameover-score"></h1>
+      <p id="gameover-text"></p>
+      <div class="btn-row">
+        <button class="btn secondary" onclick="goHome()">עמוד הבית</button>
+        <button class="btn" onclick="startGame()">שוב</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ---------- מאגר תוכן ---------- */
+const VOCAB = [
+  // level 1 - beginner
+  {w:"apple", t:"תפוח", ex:"I eat an apple every day.", lvl:1},
+  {w:"house", t:"בית", ex:"This is my house.", lvl:1},
+  {w:"friend", t:"חבר", ex:"She is my best friend.", lvl:1},
+  {w:"water", t:"מים", ex:"I drink water in the morning.", lvl:1},
+  {w:"happy", t:"שמח", ex:"He is very happy today.", lvl:1},
+  {w:"school", t:"בית ספר", ex:"We go to school by bus.", lvl:1},
+  {w:"book", t:"ספר", ex:"I am reading a good book.", lvl:1},
+  {w:"dog", t:"כלב", ex:"The dog is playing outside.", lvl:1},
+  // level 2 - intermediate
+  {w:"decide", t:"להחליט", ex:"I need to decide today.", lvl:2},
+  {w:"opportunity", t:"הזדמנות", ex:"This is a great opportunity.", lvl:2},
+  {w:"improve", t:"להשתפר", ex:"I want to improve my English.", lvl:2},
+  {w:"environment", t:"סביבה", ex:"We must protect the environment.", lvl:2},
+  {w:"achieve", t:"להשיג", ex:"She worked hard to achieve her goal.", lvl:2},
+  {w:"relationship", t:"מערכת יחסים", ex:"They have a strong relationship.", lvl:2},
+  {w:"suggest", t:"להציע", ex:"I suggest we leave early.", lvl:2},
+  {w:"schedule", t:"לוח זמנים", ex:"Check the schedule for tomorrow.", lvl:2},
+  // level 3 - advanced
+  {w:"ambiguous", t:"דו־משמעי", ex:"The instructions were ambiguous.", lvl:3},
+  {w:"reluctant", t:"מסויג / חושש", ex:"He was reluctant to agree.", lvl:3},
+  {w:"comprehensive", t:"מקיף", ex:"This is a comprehensive report.", lvl:3},
+  {w:"inevitable", t:"בלתי נמנע", ex:"Change is inevitable.", lvl:3},
+  {w:"meticulous", t:"קפדני", ex:"She is meticulous about details.", lvl:3},
+  {w:"resilience", t:"חוסן", ex:"He showed great resilience.", lvl:3},
+  {w:"undermine", t:"לערער / לחתור תחת", ex:"Don't undermine his confidence.", lvl:3},
+  {w:"perceive", t:"לתפוס / להבין", ex:"How do you perceive the situation?", lvl:3},
+];
+
+const QUIZ = [
+  {q:"מה המשמעות של המילה 'apple'?", opts:["תפוח","כלב","בית","ספר"], correct:0, lvl:1},
+  {q:"מה המשמעות של המילה 'friend'?", opts:["אויב","חבר","מורה","שכן"], correct:1, lvl:1},
+  {q:"איזו מילה מתאימה: 'I ___ to school every day.'", opts:["go","goes","going","gone"], correct:0, lvl:1},
+  {q:"מה המשמעות של המילה 'happy'?", opts:["עצוב","כועס","שמח","עייף"], correct:2, lvl:1},
+  {q:"מה המשמעות של המילה 'decide'?", opts:["להחליט","לרוץ","לישון","לקנות"], correct:0, lvl:2},
+  {q:"בחרו את המילה הנכונה: 'She ___ working here for two years.'", opts:["is","has been","have","was"], correct:1, lvl:2},
+  {q:"מה המשמעות של המילה 'opportunity'?", opts:["בעיה","הזדמנות","טעות","החלטה"], correct:1, lvl:2},
+  {q:"מה המשמעות של המילה 'environment'?", opts:["סביבה","עבודה","משפחה","זמן"], correct:0, lvl:2},
+  {q:"מה המשמעות של המילה 'ambiguous'?", opts:["ברור","דו־משמעי","מהיר","יקר"], correct:1, lvl:3},
+  {q:"מה המשמעות של המילה 'meticulous'?", opts:["עצלן","קפדני","עייף","נדיב"], correct:1, lvl:3},
+  {q:"בחרו את המשפט הנכון:", opts:["If I would know, I would tell you.","If I knew, I would tell you.","If I know, I would told you.","If I knowing, I tell you."], correct:1, lvl:3},
+  {q:"מה המשמעות של המילה 'resilience'?", opts:["חוסן","חולשה","מהירות","שקט"], correct:0, lvl:3},
+];
+
+/* ---------- מצב ופרסיסטנטיות ---------- */
+const STORAGE_KEY = "milon-baderech-progress";
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { level: null, mastered: {}, highscore: 0 };
+}
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+}
+let state = loadState();
+
+function showScreen(id) {
+  document.querySelectorAll('.card > div').forEach(el => el.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+
+/* ---------- אתחול ---------- */
+window.onload = function() {
+  if (state.level) {
+    goHome();
+  } else {
+    showScreen('screen-welcome');
+  }
+};
+
+/* ---------- שאלון הערכה ---------- */
+let quizIndex = 0;
+let quizScore = 0;
+
+function startQuiz() {
+  quizIndex = 0;
+  quizScore = 0;
+  showScreen('screen-quiz');
+  renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+  const q = QUIZ[quizIndex];
+  document.getElementById('quiz-progress').style.width = (quizIndex / QUIZ.length * 100) + '%';
+  document.getElementById('quiz-question').textContent = q.q;
+  const optsDiv = document.getElementById('quiz-options');
+  optsDiv.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'option';
+    b.textContent = opt;
+    b.onclick = () => answerQuiz(i);
+    optsDiv.appendChild(b);
+  });
+}
+
+function answerQuiz(i) {
+  const q = QUIZ[quizIndex];
+  const buttons = document.querySelectorAll('#quiz-options .option');
+  buttons.forEach(b => b.onclick = null);
+  if (i === q.correct) {
+    quizScore++;
+    buttons[i].classList.add('correct');
+  } else {
+    buttons[i].classList.add('wrong');
+    buttons[q.correct].classList.add('correct');
+  }
+  setTimeout(() => {
+    quizIndex++;
+    if (quizIndex < QUIZ.length) {
+      renderQuizQuestion();
+    } else {
+      finishQuiz();
+    }
+  }, 700);
+}
+
+function finishQuiz() {
+  document.getElementById('quiz-progress').style.width = '100%';
+  let level, title, text, badge;
+  if (quizScore <= 4) {
+    level = 1; badge = "מתחילים"; title = "רמת בסיס";
+    text = "מעולה שהתחלתם! נתחיל מהיסודות — אוצר מילים בסיסי ותרגול קבוע יקדמו אתכם מהר.";
+  } else if (quizScore <= 8) {
+    level = 2; badge = "בינוני"; title = "רמת ביניים";
+    text = "יש לכם כבר בסיס טוב! נתמקד בהרחבת אוצר מילים ובביטויים שימושיים יותר.";
+  } else {
+    level = 3; badge = "מתקדמים"; title = "רמה מתקדמת";
+    text = "רמה מרשימה! נתרגל מילים ומבנים מתקדמים כדי לחדד את השפה שלכם.";
+  }
+  state.level = level;
+  saveState();
+  document.getElementById('result-badge').textContent = badge;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('result-text').textContent = text;
+  showScreen('screen-result');
+}
+
+/* ---------- עמוד הבית ---------- */
+function goHome() {
+  const levelNames = {1:"מתחילים", 2:"בינוני", 3:"מתקדמים"};
+  document.getElementById('home-level-badge').textContent = "רמה: " + levelNames[state.level];
+  document.getElementById('home-mastered').textContent = Object.values(state.mastered).filter(v => v).length;
+  document.getElementById('home-highscore').textContent = state.highscore;
+  showScreen('screen-home');
+}
+
+function restartAll() {
+  state = { level: null, mastered: {}, highscore: 0 };
+  saveState();
+  showScreen('screen-welcome');
+}
+
+/* ---------- מודול אוצר מילים ---------- */
+let vocabList = [];
+let vocabIndex = 0;
+
+function startVocab() {
+  vocabList = VOCAB.filter(v => v.lvl === state.level);
+  vocabIndex = 0;
+  showScreen('screen-vocab');
+  renderVocabCard();
+}
+
+function renderVocabCard() {
+  const item = vocabList[vocabIndex];
+  document.getElementById('vocab-progress').style.width = (vocabIndex / vocabList.length * 100) + '%';
+  document.getElementById('vocab-word').textContent = item.w;
+  document.getElementById('vocab-translation').textContent = '';
+  document.getElementById('vocab-example').textContent = '';
+  document.getElementById('vocab-reveal-row').classList.remove('hidden');
+  document.getElementById('vocab-know-row').classList.add('hidden');
+}
+
+function revealVocab() {
+  const item = vocabList[vocabIndex];
+  document.getElementById('vocab-translation').textContent = item.t;
+  document.getElementById('vocab-example').textContent = item.ex;
+  document.getElementById('vocab-reveal-row').classList.add('hidden');
+  document.getElementById('vocab-know-row').classList.remove('hidden');
+}
+
+function markVocab(known) {
+  const item = vocabList[vocabIndex];
+  state.mastered[item.w] = known;
+  saveState();
+  vocabIndex++;
+  if (vocabIndex < vocabList.length) {
+    renderVocabCard();
+  } else {
+    document.getElementById('vocab-progress').style.width = '100%';
+    goHome();
+  }
+}
+
+/* ---------- משחק מהירות ---------- */
+let gameTimeLeft = 30;
+let gameScore = 0;
+let gameTimerHandle = null;
+let gamePool = [];
+
+function startGame() {
+  gamePool = VOCAB.filter(v => v.lvl === state.level);
+  gameScore = 0;
+  gameTimeLeft = 30;
+  document.getElementById('game-timer').textContent = gameTimeLeft;
+  showScreen('screen-game');
+  nextGameQuestion();
+  gameTimerHandle = setInterval(() => {
+    gameTimeLeft--;
+    document.getElementById('game-timer').textContent = gameTimeLeft;
+    if (gameTimeLeft <= 0) endGame();
+  }, 1000);
+}
+
+function nextGameQuestion() {
+  const correctItem = gamePool[Math.floor(Math.random() * gamePool.length)];
+  let wrongOpts = VOCAB.filter(v => v.w !== correctItem.w)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3)
+    .map(v => v.t);
+  const opts = [correctItem.t, ...wrongOpts].sort(() => Math.random() - 0.5);
+  document.getElementById('game-question').innerHTML = 'מה המשמעות של <span class="eng">' + correctItem.w + '</span>?';
+  const optsDiv = document.getElementById('game-options');
+  optsDiv.innerHTML = '';
+  opts.forEach(opt => {
+    const b = document.createElement('button');
+    b.className = 'option';
+    b.textContent = opt;
+    b.onclick = () => {
+      if (opt === correctItem.t) {
+        gameScore++;
+        b.classList.add('correct');
+      } else {
+        b.classList.add('wrong');
+      }
+      setTimeout(nextGameQuestion, 350);
+    };
+    optsDiv.appendChild(b);
+  });
+}
+
+function endGame() {
+  clearInterval(gameTimerHandle);
+  if (gameScore > state.highscore) {
+    state.highscore = gameScore;
+    saveState();
+  }
+  document.getElementById('gameover-score').textContent = gameScore + " תשובות נכונות";
+  document.getElementById('gameover-text').textContent = gameScore > state.highscore - 1 && gameScore === state.highscore && gameScore > 0
+    ? "שיא חדש! כל הכבוד."
+    : "המשיכו לתרגל כדי לשפר את השיא שלכם (" + state.highscore + ").";
+  showScreen('screen-gameover');
+}
+</script>
+</body>
+</html>
