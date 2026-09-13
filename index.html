@@ -117,7 +117,46 @@
       <h2>קצת עליכם</h2>
       <div class="field"><label>שם</label><input type="text" id="profile-name" placeholder="איך קוראים לכם?"></div>
       <div class="field"><label>גיל</label><input type="number" id="profile-age" placeholder="בן/בת כמה אתם?" min="4" max="120"></div>
-      <button class="btn" onclick="saveProfileAndQuiz()">לשאלון ההערכה</button>
+      <button class="btn" onclick="saveProfileAndContinue()">המשך</button>
+    </div>
+
+    <div id="screen-level-choice" class="hidden">
+      <h2>באיזו רמה נתחיל?</h2>
+      <p>אפשר לבחור לפי כיתה, או לפי איך שאתם מרגישים עם האנגלית שלכם — בהתאם לבחירה נתאים את שאלון ההערכה.</p>
+      <div class="nav-tabs">
+        <div class="nav-tab active" id="lc-tab-grade" onclick="showLevelChoiceTab('grade')">לפי כיתה</div>
+        <div class="nav-tab" id="lc-tab-self" onclick="showLevelChoiceTab('self')">לפי תחושת רמה</div>
+      </div>
+      <div id="lc-panel-grade">
+        <div class="field">
+          <label>כיתה</label>
+          <select id="grade-select">
+            <option value="1">א׳</option>
+            <option value="2">ב׳</option>
+            <option value="3">ג׳</option>
+            <option value="4">ד׳</option>
+            <option value="5">ה׳</option>
+            <option value="6">ו׳</option>
+            <option value="7">ז׳</option>
+            <option value="8">ח׳</option>
+            <option value="9">ט׳</option>
+            <option value="10">י׳</option>
+            <option value="11">יא׳</option>
+            <option value="12">יב׳</option>
+            <option value="adult">מבוגר / לא רלוונטי</option>
+          </select>
+        </div>
+        <button class="btn" onclick="chooseByGrade()">המשך לשאלון</button>
+      </div>
+      <div id="lc-panel-self" class="hidden">
+        <div class="module-grid">
+          <div class="module-card" onclick="startTierQuiz(1)"><div class="txt"><div class="title">מתחילים</div><div class="sub">כמעט ולא הכרתי אנגלית עדיין</div></div></div>
+          <div class="module-card" onclick="startTierQuiz(2)"><div class="txt"><div class="title">שליטה בסיסית</div><div class="sub">מכיר/ה מילים ומשפטים פשוטים</div></div></div>
+          <div class="module-card" onclick="startTierQuiz(3)"><div class="txt"><div class="title">שליטה טובה</div><div class="sub">מסתדר/ת די בטוב, גם בדקדוק</div></div></div>
+          <div class="module-card" onclick="startTierQuiz(4)"><div class="txt"><div class="title">מתקדמים</div><div class="sub">קורא/ת ומדבר/ת ברמה גבוהה</div></div></div>
+          <div class="module-card" onclick="startTierQuiz(5)"><div class="txt"><div class="title">מצטיינים</div><div class="sub">רמה גבוהה מאוד, כולל ביטויים</div></div></div>
+        </div>
+      </div>
     </div>
 
     <div id="screen-quiz" class="hidden">
@@ -292,13 +331,18 @@
 <script>
 /* ---------- קטגוריות ---------- */
 const CATEGORIES = [
-  {key:"animals", name:"חיות"}, {key:"food", name:"אוכל"}, {key:"family", name:"משפחה"},
+  {key:"colors", name:"צבעים"}, {key:"animals", name:"חיות"}, {key:"food", name:"אוכל"}, {key:"family", name:"משפחה"},
   {key:"home", name:"בית"}, {key:"nature", name:"טבע"}, {key:"travel", name:"נסיעות"},
   {key:"work", name:"עבודה ולימודים"}, {key:"feelings", name:"רגשות"}
 ];
 
 /* ---------- מאגר אוצר מילים (8 נושאים x 3 רמות) ---------- */
 const VOCAB = [
+  // colors
+  {w:"red",t:"אדום",ex:"The apple is red.",lvl:1,cat:"colors"},
+  {w:"blue",t:"כחול",ex:"The sky is blue.",lvl:1,cat:"colors"},
+  {w:"green",t:"ירוק",ex:"The grass is green.",lvl:1,cat:"colors"},
+  {w:"yellow",t:"צהוב",ex:"The sun is yellow.",lvl:1,cat:"colors"},
   // animals
   {w:"dog",t:"כלב",ex:"The dog is playing outside.",lvl:1,cat:"animals"},
   {w:"cat",t:"חתול",ex:"My cat sleeps all day.",lvl:1,cat:"animals"},
@@ -405,35 +449,92 @@ const VOCAB = [
   {w:"optimistic",t:"אופטימי",ex:"She stayed optimistic about the future.",lvl:3,cat:"feelings"},
 ];
 
-/* ---------- שאלון הערכה מגוון ---------- */
-const QUIZ = [
-  {q:"מה המשמעות של המילה 'dog'?", opts:["כלב","חתול","ציפור","דג"], correct:0, lvl:1, cat:"animals"},
-  {q:"מה המשמעות של המילה 'bread'?", opts:["לחם","חלב","ביצה","אורז"], correct:0, lvl:1, cat:"food"},
-  {q:"איך אומרים 'אמא' באנגלית?", opts:["father","sister","mother","brother"], correct:2, lvl:1, cat:"family"},
-  {q:"השלימו: 'I ___ happy today.'", opts:["am","is","are","be"], correct:0, lvl:1, cat:"grammar"},
-  {q:"מה המשמעות של המילה 'tree'?", opts:["עץ","שמש","גשם","שמיים"], correct:0, lvl:1, cat:"nature"},
-  {q:"מה המשמעות של המילה 'bus'?", opts:["רכבת","אוטובוס","מפה","כרטיס"], correct:1, lvl:1, cat:"travel"},
-  {q:"מה המשמעות של המילה 'vegetable'?", opts:["ירק","פרי","בשר","דג"], correct:0, lvl:2, cat:"food"},
-  {q:"מה המשמעות של המילה 'airport'?", opts:["תחנת רכבת","שדה תעופה","נמל","תחנת אוטובוס"], correct:1, lvl:2, cat:"travel"},
-  {q:"בחרו את הצורה הנכונה: 'She ___ working here for two years.'", opts:["is","has been","have","was"], correct:1, lvl:2, cat:"grammar"},
-  {q:"מה המשמעות של המילה 'employee'?", opts:["מנהל","לקוח","עובד","שותף"], correct:2, lvl:2, cat:"work"},
-  {q:"מה המשמעות של המילה 'nervous'?", opts:["רגוע","לחוץ","שמח","עייף"], correct:1, lvl:2, cat:"feelings"},
-  {q:"מה המשמעות של המילה 'furniture'?", opts:["רהיטים","מכשירים","צעצועים","בגדים"], correct:0, lvl:2, cat:"home"},
-  {q:"מה המשמעות של המילה 'ambiguous'?", opts:["ברור","דו־משמעי","מהיר","יקר"], correct:1, lvl:3, cat:"grammar"},
-  {q:"מה המשמעות של המילה 'sustainable'?", opts:["בר קיימא","מזיק","זמני","יקר"], correct:0, lvl:3, cat:"nature"},
-  {q:"מה המשמעות של המילה 'negotiate'?", opts:["לנהל משא ומתן","לוותר","להתעלם","לחכות"], correct:0, lvl:3, cat:"work"},
-  {q:"בחרו את המשפט הנכון:", opts:["If I would know, I would tell you.","If I knew, I would tell you.","If I know, I would told you.","If I knowing, I tell you."], correct:1, lvl:3, cat:"grammar"},
-  {q:"מה המשמעות של המילה 'grateful'?", opts:["כועס","אסיר תודה","מבולבל","עייף"], correct:1, lvl:3, cat:"feelings"},
-  {q:"מה המשמעות של המילה 'destination'?", opts:["יעד","דרכון","מזוודה","מסלול"], correct:0, lvl:3, cat:"travel"},
+/* ---------- הגדרת רמות התחלתיות (tiers) ---------- */
+const TIER_INFO = [
+  {id:1, name:"מתחילים", contentLevel:1},
+  {id:2, name:"שליטה בסיסית", contentLevel:1},
+  {id:3, name:"שליטה טובה", contentLevel:2},
+  {id:4, name:"מתקדמים", contentLevel:3},
+  {id:5, name:"מצטיינים", contentLevel:3},
 ];
+function tierInfo(id) { return TIER_INFO.find(t => t.id === id) || TIER_INFO[1]; }
 
-const LEVEL_NAMES = {1:"מתחילים", 2:"בינוני", 3:"מתקדמים"};
+function gradeToTier(grade) {
+  if (grade === "adult") return 4;
+  const g = parseInt(grade, 10);
+  if (g <= 2) return 1;
+  if (g <= 4) return 2;
+  if (g <= 6) return 3;
+  if (g <= 9) return 4;
+  return 5;
+}
+
+/* ---------- שאלוני הערכה מותאמים לפי רמה התחלתית ---------- */
+const QUIZ_SETS = {
+  // tier 1 — מתחילים: זיהוי אותיות + הקראת מילים בסיסיות (צבעים, בני משפחה)
+  1: [
+    {q:"מה האות שבאה אחרי A באלף-בית האנגלי?", opts:["B","C","D","A"], correct:0, cat:"letters"},
+    {q:"איזו מהאותיות הבאות היא האות הגדולה (capital) של 'b'?", opts:["B","D","P","R"], correct:0, cat:"letters"},
+    {q:"מה האות הראשונה במילה 'Cat'?", opts:["K","C","A","T"], correct:1, cat:"letters"},
+    {q:"כמה אותיות יש באלף-בית האנגלי?", opts:["24","25","26","27"], correct:2, cat:"letters"},
+    {q:"מה המשמעות של המילה 'red'?", opts:["אדום","כחול","ירוק","צהוב"], correct:0, cat:"colors"},
+    {q:"מה המשמעות של המילה 'blue'?", opts:["אדום","כחול","לבן","שחור"], correct:1, cat:"colors"},
+    {q:"מה המשמעות של המילה 'yellow'?", opts:["ירוק","כחול","צהוב","סגול"], correct:2, cat:"colors"},
+    {q:"מה המשמעות של המילה 'mom'?", opts:["אמא","אבא","אח","אחות"], correct:0, cat:"family"},
+    {q:"מה המשמעות של המילה 'dad'?", opts:["סבא","אבא","דוד","אח"], correct:1, cat:"family"},
+    {q:"מה המשמעות של המילה 'sister'?", opts:["אח","אחות","חבר","שכן"], correct:1, cat:"family"},
+  ],
+  // tier 2 — שליטה בסיסית
+  2: [
+    {q:"מה המשמעות של המילה 'dog'?", opts:["כלב","חתול","ציפור","דג"], correct:0, cat:"animals"},
+    {q:"מה המשמעות של המילה 'bread'?", opts:["לחם","חלב","ביצה","אורז"], correct:0, cat:"food"},
+    {q:"איך אומרים 'אמא' באנגלית?", opts:["father","sister","mother","brother"], correct:2, cat:"family"},
+    {q:"השלימו: 'I ___ happy today.'", opts:["am","is","are","be"], correct:0, cat:"grammar"},
+    {q:"מה המשמעות של המילה 'tree'?", opts:["עץ","שמש","גשם","שמיים"], correct:0, cat:"nature"},
+    {q:"מה המשמעות של המילה 'bus'?", opts:["רכבת","אוטובוס","מפה","כרטיס"], correct:1, cat:"travel"},
+    {q:"מה המשמעות של המילה 'happy'?", opts:["עצוב","שמח","עייף","כועס"], correct:1, cat:"feelings"},
+    {q:"מה המשמעות של המילה 'teacher'?", opts:["תלמיד","מורה","הורה","שכן"], correct:1, cat:"work"},
+  ],
+  // tier 3 — שליטה טובה
+  3: [
+    {q:"מה המשמעות של המילה 'vegetable'?", opts:["ירק","פרי","בשר","דג"], correct:0, cat:"food"},
+    {q:"מה המשמעות של המילה 'airport'?", opts:["תחנת רכבת","שדה תעופה","נמל","תחנת אוטובוס"], correct:1, cat:"travel"},
+    {q:"בחרו את הצורה הנכונה: 'She ___ working here for two years.'", opts:["is","has been","have","was"], correct:1, cat:"grammar"},
+    {q:"מה המשמעות של המילה 'employee'?", opts:["מנהל","לקוח","עובד","שותף"], correct:2, cat:"work"},
+    {q:"מה המשמעות של המילה 'nervous'?", opts:["רגוע","לחוץ","שמח","עייף"], correct:1, cat:"feelings"},
+    {q:"מה המשמעות של המילה 'furniture'?", opts:["רהיטים","מכשירים","צעצועים","בגדים"], correct:0, cat:"home"},
+    {q:"מה המשמעות של המילה 'forest'?", opts:["יער","הר","נהר","ים"], correct:0, cat:"nature"},
+    {q:"מה המשמעות של המילה 'cousin'?", opts:["אח","דוד","בן/בת דוד","שכן"], correct:2, cat:"family"},
+  ],
+  // tier 4 — מתקדמים
+  4: [
+    {q:"מה המשמעות של המילה 'ambiguous'?", opts:["ברור","דו־משמעי","מהיר","יקר"], correct:1, cat:"grammar"},
+    {q:"מה המשמעות של המילה 'sustainable'?", opts:["בר קיימא","מזיק","זמני","יקר"], correct:0, cat:"nature"},
+    {q:"מה המשמעות של המילה 'negotiate'?", opts:["לנהל משא ומתן","לוותר","להתעלם","לחכות"], correct:0, cat:"work"},
+    {q:"בחרו את המשפט הנכון:", opts:["If I would know, I would tell you.","If I knew, I would tell you.","If I know, I would told you.","If I knowing, I tell you."], correct:1, cat:"grammar"},
+    {q:"מה המשמעות של המילה 'grateful'?", opts:["כועס","אסיר תודה","מבולבל","עייף"], correct:1, cat:"feelings"},
+    {q:"מה המשמעות של המילה 'destination'?", opts:["יעד","דרכון","מזוודה","מסלול"], correct:0, cat:"travel"},
+    {q:"מה המשמעות של המילה 'renovate'?", opts:["לשפץ","למכור","לשכור","לצבוע"], correct:0, cat:"home"},
+    {q:"מה המשמעות של המילה 'upbringing'?", opts:["דור","חינוך/גידול","קרוב משפחה","משק בית"], correct:1, cat:"family"},
+  ],
+  // tier 5 — מצטיינים: ביטויים, פעלים פרזאליים ודקדוק מתקדם
+  5: [
+    {q:"מה המשמעות של הביטוי 'break the ice'?", opts:["לשבור קרח פיזית","לפתוח באווירה נעימה בפגישה ראשונה","להישבר מקור","לוותר על תוכנית"], correct:1, cat:"grammar"},
+    {q:"מה המשמעות של הביטוי 'once in a blue moon'?", opts:["כל לילה","לעיתים רחוקות מאוד","כל חודש","באופן קבוע"], correct:1, cat:"grammar"},
+    {q:"בחרו את הצורה הנכונה: 'By next year, I ___ my degree.'", opts:["will have completed","will complete","completed","have completed"], correct:0, cat:"grammar"},
+    {q:"מה המשמעות של הפועל הפרזאלי 'give up'?", opts:["להתחיל","לוותר","להמשיך","לחזור"], correct:1, cat:"grammar"},
+    {q:"מה המשמעות של המילה 'nevertheless'?", opts:["בנוסף","ובכל זאת","לכן","לפני כן"], correct:1, cat:"grammar"},
+    {q:"בחרו את המשפט התקין בסביל (passive voice):", opts:["The book was written by her.","The book wrote by her.","Her wrote the book.","The book is write by her."], correct:0, cat:"grammar"},
+    {q:"מה המשמעות של הביטוי 'under the weather'?", opts:["מתחת לגג","מרגיש/ה לא טוב","באמצע סערה","נהנה מהחיים"], correct:1, cat:"grammar"},
+    {q:"מה המשמעות של המילה 'ubiquitous'?", opts:["נדיר","נמצא בכל מקום","יקר","מהיר"], correct:1, cat:"grammar"},
+  ],
+};
 
 /* ---------- מצב ופרסיסטנטיות ---------- */
 const STORAGE_KEY = "milon-baderech-progress-v2";
 function loadState() {
   try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) return JSON.parse(raw); } catch(e) {}
-  return { profile:{name:"",age:""}, level:null, mastered:{}, categoryStats:{}, highscores:{speed:0,spelling:0,matchingBestMoves:null}, streak:0, lastVisit:null, badgesSeen:[] };
+  return { profile:{name:"",age:""}, level:null, tier:null, mastered:{}, categoryStats:{}, highscores:{speed:0,spelling:0,matchingBestMoves:null}, streak:0, lastVisit:null, badgesSeen:[] };
 }
 function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {} }
 let state = loadState();
@@ -458,25 +559,40 @@ window.onload = function() {
   if (state.level) { goHome(); } else { showScreen('screen-welcome'); }
 };
 
-function saveProfileAndQuiz() {
+function saveProfileAndContinue() {
   state.profile.name = document.getElementById('profile-name').value.trim();
   state.profile.age = document.getElementById('profile-age').value.trim();
   saveState();
-  startQuiz();
+  showScreen('screen-level-choice');
+  showLevelChoiceTab('grade');
+}
+
+function showLevelChoiceTab(tab) {
+  document.getElementById('lc-tab-grade').classList.toggle('active', tab === 'grade');
+  document.getElementById('lc-tab-self').classList.toggle('active', tab === 'self');
+  document.getElementById('lc-panel-grade').classList.toggle('hidden', tab !== 'grade');
+  document.getElementById('lc-panel-self').classList.toggle('hidden', tab !== 'self');
+}
+
+function chooseByGrade() {
+  const grade = document.getElementById('grade-select').value;
+  startTierQuiz(gradeToTier(grade));
 }
 
 /* ---------- שאלון הערכה ---------- */
-let quizIndex = 0, quizScore = 0, quizCatStats = {};
+let quizIndex = 0, quizScore = 0, quizCatStats = {}, currentQuiz = [], currentTier = null;
 
-function startQuiz() {
+function startTierQuiz(tierId) {
+  currentTier = tierId;
+  currentQuiz = QUIZ_SETS[tierId];
   quizIndex = 0; quizScore = 0; quizCatStats = {};
   showScreen('screen-quiz');
   renderQuizQuestion();
 }
 
 function renderQuizQuestion() {
-  const q = QUIZ[quizIndex];
-  document.getElementById('quiz-progress').style.width = (quizIndex / QUIZ.length * 100) + '%';
+  const q = currentQuiz[quizIndex];
+  document.getElementById('quiz-progress').style.width = (quizIndex / currentQuiz.length * 100) + '%';
   document.getElementById('quiz-question').textContent = q.q;
   const optsDiv = document.getElementById('quiz-options');
   optsDiv.innerHTML = '';
@@ -489,7 +605,7 @@ function renderQuizQuestion() {
 }
 
 function answerQuiz(i) {
-  const q = QUIZ[quizIndex];
+  const q = currentQuiz[quizIndex];
   const buttons = document.querySelectorAll('#quiz-options .option');
   buttons.forEach(b => b.onclick = null);
   if (!quizCatStats[q.cat]) quizCatStats[q.cat] = {correct:0,total:0};
@@ -498,25 +614,31 @@ function answerQuiz(i) {
   else { buttons[i].classList.add('wrong'); buttons[q.correct].classList.add('correct'); }
   setTimeout(() => {
     quizIndex++;
-    if (quizIndex < QUIZ.length) renderQuizQuestion(); else finishQuiz();
+    if (quizIndex < currentQuiz.length) renderQuizQuestion(); else finishQuiz();
   }, 700);
 }
 
+const CAT_LABELS_EXTRA = {letters:"זיהוי אותיות", colors:"צבעים", grammar:"דקדוק"};
 function catLabel(key) {
   const found = CATEGORIES.find(c => c.key === key);
-  return found ? found.name : "דקדוק";
+  if (found) return found.name;
+  return CAT_LABELS_EXTRA[key] || "דקדוק";
 }
 
 function finishQuiz() {
   document.getElementById('quiz-progress').style.width = '100%';
-  let level, title, text, badge;
-  if (quizScore <= 6) { level=1; badge="מתחילים"; title="רמת בסיס"; text="מעולה שהתחלתם! נתחיל מהיסודות — אוצר מילים בסיסי ותרגול קבוע יקדמו אתכם מהר."; }
-  else if (quizScore <= 12) { level=2; badge="בינוני"; title="רמת ביניים"; text="יש לכם כבר בסיס טוב! נתמקד בהרחבת אוצר מילים ובביטויים שימושיים יותר."; }
-  else { level=3; badge="מתקדמים"; title="רמה מתקדמת"; text="רמה מרשימה! נתרגל מילים ומבנים מתקדמים כדי לחדד את השפה שלכם."; }
-  state.level = level;
+  const info = tierInfo(currentTier);
+  const pct = Math.round((quizScore / currentQuiz.length) * 100);
+  state.level = info.contentLevel;
+  state.tier = info.id;
   state.categoryStats = quizCatStats;
   saveState();
-  document.getElementById('result-badge').textContent = badge;
+
+  let title, text;
+  if (pct >= 80) { title = "יופי של תוצאה!"; text = "ענית נכון על רוב השאלות ברמת " + info.name + " — נתחיל לתרגל בהתאם."; }
+  else if (pct >= 40) { title = "התחלה טובה"; text = "יש בסיס סביר ברמת " + info.name + ". נתרגל כדי לחזק את מה שעוד פחות ברור."; }
+  else { title = "בסדר גמור, נתחיל מכאן"; text = "אין בעיה להתחיל מכאן — נתקדם בהדרגה ונחזק את היסודות."; }
+  document.getElementById('result-badge').textContent = info.name;
   document.getElementById('result-title').textContent = title;
   document.getElementById('result-text').textContent = text;
 
@@ -526,7 +648,7 @@ function finishQuiz() {
     if (!best || acc > best.acc) best = {cat:k, acc};
     if (!worst || acc < worst.acc) worst = {cat:k, acc};
   });
-  let fb = "ענית נכון על " + quizScore + " מתוך " + QUIZ.length + " שאלות. ";
+  let fb = "ענית נכון על " + quizScore + " מתוך " + currentQuiz.length + " שאלות. ";
   if (best) fb += "נראה שאתם חזקים בנושא " + catLabel(best.cat) + ". ";
   if (worst && worst.cat !== (best?best.cat:null)) fb += "כדאי להתמקד קצת יותר בנושא " + catLabel(worst.cat) + ".";
   document.getElementById('result-feedback').textContent = fb;
@@ -535,7 +657,7 @@ function finishQuiz() {
 
 /* ---------- עמוד הבית ---------- */
 function goHome() {
-  document.getElementById('home-level-badge').textContent = "רמה: " + LEVEL_NAMES[state.level];
+  document.getElementById('home-level-badge').textContent = "רמה: " + tierInfo(state.tier).name;
   document.getElementById('home-greeting').textContent = state.profile.name ? ("שלום, " + state.profile.name + "!") : "שלום!";
   document.getElementById('home-mastered').textContent = Object.values(state.mastered).filter(v => v).length;
   document.getElementById('home-streak').textContent = state.streak;
@@ -543,7 +665,7 @@ function goHome() {
 }
 
 function restartAll() {
-  state = { profile:{name:"",age:""}, level:null, mastered:{}, categoryStats:{}, highscores:{speed:0,spelling:0,matchingBestMoves:null}, streak:state.streak, lastVisit:state.lastVisit, badgesSeen:[] };
+  state = { profile:{name:"",age:""}, level:null, tier:null, mastered:{}, categoryStats:{}, highscores:{speed:0,spelling:0,matchingBestMoves:null}, streak:state.streak, lastVisit:state.lastVisit, badgesSeen:[] };
   saveState();
   showScreen('screen-welcome');
 }
@@ -589,7 +711,7 @@ function showAchievements() {
 
 /* ---------- אוצר מילים לפי נושא ---------- */
 function showVocabCategories() {
-  document.getElementById('vc-level-name').textContent = LEVEL_NAMES[state.level];
+  document.getElementById('vc-level-name').textContent = tierInfo(state.tier).name;
   const list = document.getElementById('vc-list');
   list.innerHTML = '';
   CATEGORIES.forEach(c => {
