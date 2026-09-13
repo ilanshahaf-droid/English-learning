@@ -101,6 +101,9 @@
   .spell-example .heb { font-size:1.15rem; font-weight:700; color:var(--teal-dark); margin-bottom:6px; }
   .spell-example .sent { font-size:.88rem; color:var(--ink-soft); direction:ltr; }
   .feedback-box { background:var(--bg); border-right:4px solid var(--gold); border-radius:10px; padding:14px 16px; margin-bottom:16px; font-size:.9rem; }
+  .speak-btn { display:inline-block; margin-top:8px; background:var(--paper); border:1.5px solid var(--teal); color:var(--teal-dark); border-radius:999px; padding:6px 16px; font-size:.85rem; font-weight:700; cursor:pointer; font-family:'Assistant',sans-serif; }
+  .speak-btn:hover { background:var(--teal); color:#fff; }
+  .speak-mini { display:inline-block; margin-right:6px; background:none; border:none; font-size:1rem; cursor:pointer; vertical-align:middle; padding:0; }
 </style>
 </head>
 <body>
@@ -190,8 +193,12 @@
           <div class="icon">📚</div>
         </div>
         <div class="module-card" onclick="showGamesHub()">
-          <div class="txt"><div class="title">משחקים ובדיקות</div><div class="sub">מהירות, התאמות, ומבחן איות</div></div>
+          <div class="txt"><div class="title">משחקים ובדיקות</div><div class="sub">מהירות, התאמות, האזנה, איות והשלמת משפטים</div></div>
           <div class="icon">🎮</div>
+        </div>
+        <div class="module-card" onclick="startReading()">
+          <div class="txt"><div class="title">קריאת טקסטים</div><div class="sub">טקסט קצר ברמה שלכם + שאלות הבנה</div></div>
+          <div class="icon">📖</div>
         </div>
       </div>
       <button class="link-small" onclick="restartAll()">איפוס התקדמות ובדיקת רמה מחדש</button>
@@ -214,6 +221,10 @@
           <div class="stat"><div class="num" id="achv-spelling">0</div><div class="lbl">מבחן איות</div></div>
           <div class="stat"><div class="num" id="achv-matching">-</div><div class="lbl">התאמות (מס' ניסיונות)</div></div>
         </div>
+        <div class="stat-row">
+          <div class="stat"><div class="num" id="achv-listening">0</div><div class="lbl">משחק האזנה</div></div>
+          <div class="stat"><div class="num" id="achv-sentence">0</div><div class="lbl">השלמת משפטים</div></div>
+        </div>
       </div>
       <div class="achv-section">
         <h3>תגים</h3>
@@ -232,6 +243,7 @@
       <div class="progress-bar"><div class="progress-fill" id="vocab-progress"></div></div>
       <div class="flash">
         <div class="word eng" id="vocab-word"></div>
+        <button class="speak-btn" onclick="speakVocabWord()" aria-label="השמע הגייה">🔊 השמע</button>
         <div class="translation" id="vocab-translation"></div>
         <div class="example eng" id="vocab-example"></div>
       </div>
@@ -267,6 +279,14 @@
         <div class="module-card" onclick="startSpelling()">
           <div class="txt"><div class="title">מבחן איות</div><div class="sub">כתבו את המילה באנגלית לפי התרגום</div></div>
           <div class="icon">✏️</div>
+        </div>
+        <div class="module-card" onclick="startListening()">
+          <div class="txt"><div class="title">משחק האזנה</div><div class="sub">שמעו את המילה ובחרו את התרגום הנכון</div></div>
+          <div class="icon">🎧</div>
+        </div>
+        <div class="module-card" onclick="startSentence()">
+          <div class="txt"><div class="title">השלמת משפטים</div><div class="sub">השלימו את המילה החסרה במשפט</div></div>
+          <div class="icon">📝</div>
         </div>
       </div>
       <button class="link-small" onclick="goHome()">חזרה לעמוד הבית</button>
@@ -325,6 +345,70 @@
       </div>
     </div>
 
+    <div id="screen-listening" class="hidden">
+      <div class="progress-bar"><div class="progress-fill" id="listen-progress"></div></div>
+      <h2>איזו מילה שמעתם?</h2>
+      <div style="text-align:center; margin-bottom:16px;">
+        <button class="btn gold" id="listen-replay-btn" onclick="replayListening()">🔊 השמע שוב</button>
+      </div>
+      <div id="listen-options"></div>
+    </div>
+
+    <div id="screen-listening-done" class="hidden" style="text-align:center;">
+      <div class="badge">סיום!</div>
+      <h1 id="listening-done-title"></h1>
+      <div class="feedback-box" id="listening-done-feedback"></div>
+      <div class="btn-row">
+        <button class="btn secondary" onclick="showGamesHub()">משחקים נוספים</button>
+        <button class="btn" onclick="startListening()">שוב</button>
+      </div>
+    </div>
+
+    <div id="screen-sentence" class="hidden">
+      <div class="progress-bar"><div class="progress-fill" id="sentence-progress"></div></div>
+      <h2>איזו מילה מתאימה למשפט?</h2>
+      <div class="spell-example">
+        <div class="sent" id="sentence-text" style="direction:ltr; font-size:1.05rem;"></div>
+      </div>
+      <div id="sentence-options"></div>
+    </div>
+
+    <div id="screen-sentence-done" class="hidden" style="text-align:center;">
+      <div class="badge">סיום!</div>
+      <h1 id="sentence-done-title"></h1>
+      <div class="feedback-box" id="sentence-done-feedback"></div>
+      <div class="btn-row">
+        <button class="btn secondary" onclick="showGamesHub()">משחקים נוספים</button>
+        <button class="btn" onclick="startSentence()">שוב</button>
+      </div>
+    </div>
+
+    <div id="screen-reading-passage" class="hidden">
+      <h2 id="reading-title"></h2>
+      <div class="spell-example" style="text-align:right;">
+        <div class="sent" id="reading-text" style="direction:ltr; font-size:1rem; text-align:right;"></div>
+      </div>
+      <button class="speak-btn" style="width:100%; text-align:center; margin-bottom:14px;" onclick="speakReadingText()">🔊 הקראת הטקסט</button>
+      <button class="btn" onclick="startReadingQuiz()">לשאלות ההבנה</button>
+      <button class="link-small" onclick="goHome()">חזרה לעמוד הבית</button>
+    </div>
+
+    <div id="screen-reading-quiz" class="hidden">
+      <div class="progress-bar"><div class="progress-fill" id="reading-progress"></div></div>
+      <h2 id="reading-question"></h2>
+      <div id="reading-options"></div>
+    </div>
+
+    <div id="screen-reading-done" class="hidden" style="text-align:center;">
+      <div class="badge">סיום!</div>
+      <h1 id="reading-done-title"></h1>
+      <div class="feedback-box" id="reading-done-feedback"></div>
+      <div class="btn-row">
+        <button class="btn secondary" onclick="goHome()">עמוד הבית</button>
+        <button class="btn" onclick="startReading()">טקסט נוסף</button>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -333,7 +417,7 @@
 const CATEGORIES = [
   {key:"colors", name:"צבעים"}, {key:"animals", name:"חיות"}, {key:"food", name:"אוכל"}, {key:"family", name:"משפחה"},
   {key:"home", name:"בית"}, {key:"nature", name:"טבע"}, {key:"travel", name:"נסיעות"},
-  {key:"work", name:"עבודה ולימודים"}, {key:"feelings", name:"רגשות"}
+  {key:"work", name:"עבודה ולימודים"}, {key:"feelings", name:"רגשות"}, {key:"numbers", name:"מספרים וזמן"}, {key:"body", name:"גוף האדם"}
 ];
 
 /* ---------- מאגר אוצר מילים (8 נושאים x 3 רמות) ---------- */
@@ -447,6 +531,32 @@ const VOCAB = [
   {w:"grateful",t:"אסיר תודה",ex:"I am grateful for your help.",lvl:3,cat:"feelings"},
   {w:"reluctant",t:"מסויג",ex:"He was reluctant to agree.",lvl:3,cat:"feelings"},
   {w:"optimistic",t:"אופטימי",ex:"She stayed optimistic about the future.",lvl:3,cat:"feelings"},
+  // numbers & time
+  {w:"one",t:"אחת",ex:"I have one brother.",lvl:1,cat:"numbers"},
+  {w:"two",t:"שתיים",ex:"She has two cats.",lvl:1,cat:"numbers"},
+  {w:"three",t:"שלוש",ex:"There are three books on the table.",lvl:1,cat:"numbers"},
+  {w:"today",t:"היום",ex:"Today is a sunny day.",lvl:1,cat:"numbers"},
+  {w:"first",t:"ראשון",ex:"This is my first day at school.",lvl:2,cat:"numbers"},
+  {w:"dozen",t:"תריסר (12)",ex:"I bought a dozen eggs.",lvl:2,cat:"numbers"},
+  {w:"tomorrow",t:"מחר",ex:"We will meet tomorrow.",lvl:2,cat:"numbers"},
+  {w:"century",t:"מאה שנה",ex:"This building is over a century old.",lvl:2,cat:"numbers"},
+  {w:"quantity",t:"כמות",ex:"We need a large quantity of paper.",lvl:3,cat:"numbers"},
+  {w:"percentage",t:"אחוז",ex:"A small percentage of students were absent.",lvl:3,cat:"numbers"},
+  {w:"fraction",t:"שבר",ex:"One half is a simple fraction.",lvl:3,cat:"numbers"},
+  {w:"decade",t:"עשור",ex:"He lived there for a decade.",lvl:3,cat:"numbers"},
+  // body
+  {w:"head",t:"ראש",ex:"My head hurts a little.",lvl:1,cat:"body"},
+  {w:"hand",t:"יד",ex:"She raised her hand.",lvl:1,cat:"body"},
+  {w:"leg",t:"רגל",ex:"He hurt his leg playing football.",lvl:1,cat:"body"},
+  {w:"eye",t:"עין",ex:"She has blue eyes.",lvl:1,cat:"body"},
+  {w:"shoulder",t:"כתף",ex:"He carried the bag on his shoulder.",lvl:2,cat:"body"},
+  {w:"stomach",t:"בטן",ex:"My stomach hurts after lunch.",lvl:2,cat:"body"},
+  {w:"finger",t:"אצבע",ex:"She pointed with her finger.",lvl:2,cat:"body"},
+  {w:"knee",t:"ברך",ex:"He fell and hurt his knee.",lvl:2,cat:"body"},
+  {w:"spine",t:"עמוד שדרה",ex:"The spine supports the whole body.",lvl:3,cat:"body"},
+  {w:"joint",t:"מפרק",ex:"The knee is a large joint.",lvl:3,cat:"body"},
+  {w:"muscle",t:"שריר",ex:"Exercise makes your muscles stronger.",lvl:3,cat:"body"},
+  {w:"nerve",t:"עצב",ex:"A nerve sends signals to the brain.",lvl:3,cat:"body"},
 ];
 
 /* ---------- הגדרת רמות התחלתיות (tiers) ---------- */
@@ -533,8 +643,15 @@ const QUIZ_SETS = {
 /* ---------- מצב ופרסיסטנטיות ---------- */
 const STORAGE_KEY = "milon-baderech-progress-v2";
 function loadState() {
-  try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) return JSON.parse(raw); } catch(e) {}
-  return { profile:{name:"",age:""}, level:null, tier:null, mastered:{}, categoryStats:{}, highscores:{speed:0,spelling:0,matchingBestMoves:null}, streak:0, lastVisit:null, badgesSeen:[] };
+  const defaults = { profile:{name:"",age:""}, level:null, tier:null, mastered:{}, categoryStats:{}, highscores:{speed:0,spelling:0,matchingBestMoves:null,listening:0,sentence:0}, streak:0, lastVisit:null, badgesSeen:[] };
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const loaded = JSON.parse(raw);
+      return Object.assign({}, defaults, loaded, { highscores: Object.assign({}, defaults.highscores, loaded.highscores || {}) });
+    }
+  } catch(e) {}
+  return defaults;
 }
 function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {} }
 let state = loadState();
@@ -547,6 +664,18 @@ function updateStreak() {
   state.streak = (state.lastVisit === yesterday) ? (state.streak + 1) : 1;
   state.lastVisit = today;
   saveState();
+}
+
+/* ---------- הקראת מילים (Text-to-Speech) ---------- */
+function speak(text) {
+  try {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'en-US';
+    utter.rate = 0.9;
+    window.speechSynthesis.speak(utter);
+  } catch(e) {}
 }
 
 function showScreen(id) {
@@ -665,7 +794,7 @@ function goHome() {
 }
 
 function restartAll() {
-  state = { profile:{name:"",age:""}, level:null, tier:null, mastered:{}, categoryStats:{}, highscores:{speed:0,spelling:0,matchingBestMoves:null}, streak:state.streak, lastVisit:state.lastVisit, badgesSeen:[] };
+  state = { profile:{name:"",age:""}, level:null, tier:null, mastered:{}, categoryStats:{}, highscores:{speed:0,spelling:0,matchingBestMoves:null,listening:0,sentence:0}, streak:state.streak, lastVisit:state.lastVisit, badgesSeen:[] };
   saveState();
   showScreen('screen-welcome');
 }
@@ -687,6 +816,8 @@ function showAchievements() {
   document.getElementById('achv-speed').textContent = state.highscores.speed;
   document.getElementById('achv-spelling').textContent = state.highscores.spelling;
   document.getElementById('achv-matching').textContent = state.highscores.matchingBestMoves === null ? "-" : state.highscores.matchingBestMoves;
+  document.getElementById('achv-listening').textContent = state.highscores.listening;
+  document.getElementById('achv-sentence').textContent = state.highscores.sentence;
 
   const totalMastered = Object.values(state.mastered).filter(v => v).length;
   const badges = [
@@ -745,6 +876,11 @@ function renderVocabCard() {
   document.getElementById('vocab-example').textContent = '';
   document.getElementById('vocab-reveal-row').classList.remove('hidden');
   document.getElementById('vocab-know-row').classList.add('hidden');
+  speak(item.w);
+}
+
+function speakVocabWord() {
+  speak(vocabList[vocabIndex].w);
 }
 
 function revealVocab() {
@@ -793,7 +929,7 @@ function nextGameQuestion() {
   const correctItem = gamePool[Math.floor(Math.random() * gamePool.length)];
   let wrongOpts = VOCAB.filter(v => v.w !== correctItem.w).sort(() => Math.random()-0.5).slice(0,3).map(v => v.t);
   const opts = [correctItem.t, ...wrongOpts].sort(() => Math.random()-0.5);
-  document.getElementById('game-question').innerHTML = 'מה המשמעות של <span class="eng">' + correctItem.w + '</span>?';
+  document.getElementById('game-question').innerHTML = 'מה המשמעות של <span class="eng">' + correctItem.w + '</span>? <button class="speak-mini" onclick="speak(\'' + correctItem.w + '\')">🔊</button>';
   const optsDiv = document.getElementById('game-options');
   optsDiv.innerHTML = '';
   opts.forEach(opt => {
@@ -857,6 +993,7 @@ function flipMatchCard(i) {
   const c = matchState.cards[i];
   if (matchState.lock || c.solved || c.flipped) return;
   c.flipped = true;
+  if (c.type === 'eng') speak(c.text);
   matchState.flipped.push(i);
   renderMatchGrid();
   if (matchState.flipped.length === 2) {
@@ -953,6 +1090,189 @@ function finishSpelling() {
   document.getElementById('spelling-done-feedback').textContent = isNewHigh ? "שיא חדש! כל הכבוד." : ("השיא שלכם הוא " + state.highscores.spelling + " — המשיכו לתרגל.");
   showScreen('screen-spelling-done');
 }
+
+/* ---------- משחק האזנה ---------- */
+let listenList = [], listenIndex = 0, listenScore = 0;
+
+function startListening() {
+  listenList = VOCAB.filter(v => v.lvl === state.level).sort(() => Math.random()-0.5).slice(0,8);
+  listenIndex = 0; listenScore = 0;
+  showScreen('screen-listening');
+  renderListenQuestion();
+}
+
+function renderListenQuestion() {
+  const item = listenList[listenIndex];
+  document.getElementById('listen-progress').style.width = (listenIndex / listenList.length * 100) + '%';
+  let wrongOpts = VOCAB.filter(v => v.w !== item.w).sort(() => Math.random()-0.5).slice(0,3).map(v => v.t);
+  const opts = [item.t, ...wrongOpts].sort(() => Math.random()-0.5);
+  const optsDiv = document.getElementById('listen-options');
+  optsDiv.innerHTML = '';
+  opts.forEach(opt => {
+    const b = document.createElement('button');
+    b.className = 'option'; b.textContent = opt;
+    b.onclick = () => {
+      const buttons = document.querySelectorAll('#listen-options .option');
+      buttons.forEach(bb => bb.onclick = null);
+      if (opt === item.t) { listenScore++; b.classList.add('correct'); }
+      else {
+        b.classList.add('wrong');
+        buttons.forEach(bb => { if (bb.textContent === item.t) bb.classList.add('correct'); });
+      }
+      setTimeout(() => {
+        listenIndex++;
+        if (listenIndex < listenList.length) renderListenQuestion(); else finishListening();
+      }, 800);
+    };
+    optsDiv.appendChild(b);
+  });
+  setTimeout(() => speak(item.w), 250);
+}
+
+function replayListening() { speak(listenList[listenIndex].w); }
+
+function finishListening() {
+  document.getElementById('listen-progress').style.width = '100%';
+  const isNewHigh = listenScore > state.highscores.listening;
+  if (isNewHigh) { state.highscores.listening = listenScore; saveState(); }
+  document.getElementById('listening-done-title').textContent = listenScore + " מתוך " + listenList.length + " נכונות";
+  document.getElementById('listening-done-feedback').textContent = isNewHigh ? "שיא חדש בהאזנה! כל הכבוד." : ("השיא שלכם הוא " + state.highscores.listening + " — המשיכו לתרגל.");
+  showScreen('screen-listening-done');
+}
+
+/* ---------- השלמת משפטים ---------- */
+let sentenceList = [], sentenceIndex = 0, sentenceScore = 0;
+
+function startSentence() {
+  sentenceList = VOCAB.filter(v => v.lvl === state.level).sort(() => Math.random()-0.5).slice(0,8);
+  sentenceIndex = 0; sentenceScore = 0;
+  showScreen('screen-sentence');
+  renderSentenceQuestion();
+}
+
+function renderSentenceQuestion() {
+  const item = sentenceList[sentenceIndex];
+  document.getElementById('sentence-progress').style.width = (sentenceIndex / sentenceList.length * 100) + '%';
+  const blanked = item.ex.replace(new RegExp('\\b' + item.w + '\\b', 'i'), '_____');
+  document.getElementById('sentence-text').textContent = blanked;
+  let wrongOpts = VOCAB.filter(v => v.w !== item.w && v.cat === item.cat).sort(() => Math.random()-0.5).slice(0,3).map(v => v.w);
+  if (wrongOpts.length < 3) {
+    const more = VOCAB.filter(v => v.w !== item.w && !wrongOpts.includes(v.w)).sort(() => Math.random()-0.5).slice(0, 3 - wrongOpts.length).map(v => v.w);
+    wrongOpts = wrongOpts.concat(more);
+  }
+  const opts = [item.w, ...wrongOpts].sort(() => Math.random()-0.5);
+  const optsDiv = document.getElementById('sentence-options');
+  optsDiv.innerHTML = '';
+  opts.forEach(opt => {
+    const b = document.createElement('button');
+    b.className = 'option eng'; b.style.direction = 'ltr'; b.textContent = opt;
+    b.onclick = () => {
+      const buttons = document.querySelectorAll('#sentence-options .option');
+      buttons.forEach(bb => bb.onclick = null);
+      if (opt === item.w) { sentenceScore++; b.classList.add('correct'); }
+      else {
+        b.classList.add('wrong');
+        buttons.forEach(bb => { if (bb.textContent === item.w) bb.classList.add('correct'); });
+      }
+      setTimeout(() => {
+        sentenceIndex++;
+        if (sentenceIndex < sentenceList.length) renderSentenceQuestion(); else finishSentence();
+      }, 800);
+    };
+    optsDiv.appendChild(b);
+  });
+}
+
+function finishSentence() {
+  document.getElementById('sentence-progress').style.width = '100%';
+  const isNewHigh = sentenceScore > state.highscores.sentence;
+  if (isNewHigh) { state.highscores.sentence = sentenceScore; saveState(); }
+  document.getElementById('sentence-done-title').textContent = sentenceScore + " מתוך " + sentenceList.length + " נכונות";
+  document.getElementById('sentence-done-feedback').textContent = isNewHigh ? "שיא חדש! כל הכבוד." : ("השיא שלכם הוא " + state.highscores.sentence + " — המשיכו לתרגל.");
+  showScreen('screen-sentence-done');
+}
+
+/* ---------- קריאת טקסטים ---------- */
+const READING = {
+  1: [{
+    title: "My Family",
+    text: "My name is Dan. I have a mother, a father, and one sister. My sister is happy today. We eat breakfast together every morning. After breakfast, I go to school by bus.",
+    questions: [
+      {q:"How many sisters does Dan have?", opts:["One","Two","Three","None"], correct:0},
+      {q:"What do they do together every morning?", opts:["Play games","Eat breakfast","Go to the park","Watch TV"], correct:1},
+      {q:"How does Dan go to school?", opts:["By car","By train","By bus","On foot"], correct:2},
+    ]
+  }],
+  2: [{
+    title: "A Weekend Trip",
+    text: "Last weekend, Maya went on a short journey to the mountains with her family. They packed their luggage the night before and left early in the morning. The weather was cold, but the forest was beautiful. Maya took many photos of the river and the trees.",
+    questions: [
+      {q:"Where did Maya go?", opts:["To the beach","To the mountains","To school","To the airport"], correct:1},
+      {q:"When did they pack their luggage?", opts:["In the morning","The night before","During the trip","They didn't pack"], correct:1},
+      {q:"What did Maya take photos of?", opts:["Her friends","The river and trees","The airport","Her house"], correct:1},
+    ]
+  }],
+  3: [{
+    title: "Working Toward Sustainability",
+    text: "Many companies are now trying to become more sustainable. They negotiate with suppliers to reduce waste and improve productivity without harming the environment. Employees are encouraged to collaborate on new ideas, even though change can feel overwhelming at first. Over time, most teams become more confident and proud of the results.",
+    questions: [
+      {q:"What are companies trying to achieve?", opts:["Higher prices","More sustainability","Less collaboration","Fewer employees"], correct:1},
+      {q:"How might employees feel about change at first?", opts:["Excited only","Overwhelmed","Angry","Bored"], correct:1},
+      {q:"What does the text suggest happens over time?", opts:["Teams give up","Teams become more confident","Companies close","Nothing changes"], correct:1},
+    ]
+  }],
+};
+
+let currentReading = null, readingQIndex = 0, readingScore = 0;
+
+function startReading() {
+  const pool = READING[state.level] || READING[1];
+  currentReading = pool[Math.floor(Math.random() * pool.length)];
+  document.getElementById('reading-title').textContent = currentReading.title;
+  document.getElementById('reading-text').textContent = currentReading.text;
+  showScreen('screen-reading-passage');
+}
+
+function speakReadingText() { speak(currentReading.text); }
+
+function startReadingQuiz() {
+  readingQIndex = 0; readingScore = 0;
+  showScreen('screen-reading-quiz');
+  renderReadingQuestion();
+}
+
+function renderReadingQuestion() {
+  const q = currentReading.questions[readingQIndex];
+  document.getElementById('reading-progress').style.width = (readingQIndex / currentReading.questions.length * 100) + '%';
+  document.getElementById('reading-question').textContent = q.q;
+  const optsDiv = document.getElementById('reading-options');
+  optsDiv.innerHTML = '';
+  q.opts.forEach((opt, i) => {
+    const b = document.createElement('button');
+    b.className = 'option'; b.style.direction = 'ltr'; b.style.textAlign = 'left'; b.textContent = opt;
+    b.onclick = () => {
+      const buttons = document.querySelectorAll('#reading-options .option');
+      buttons.forEach(bb => bb.onclick = null);
+      if (i === q.correct) { readingScore++; b.classList.add('correct'); }
+      else { b.classList.add('wrong'); buttons[q.correct].classList.add('correct'); }
+      setTimeout(() => {
+        readingQIndex++;
+        if (readingQIndex < currentReading.questions.length) renderReadingQuestion(); else finishReading();
+      }, 800);
+    };
+    optsDiv.appendChild(b);
+  });
+}
+
+function finishReading() {
+  document.getElementById('reading-progress').style.width = '100%';
+  document.getElementById('reading-done-title').textContent = readingScore + " מתוך " + currentReading.questions.length + " נכונות";
+  document.getElementById('reading-done-feedback').textContent = readingScore === currentReading.questions.length
+    ? "הבנת הנקרא מצוינת! כל הכבוד."
+    : "כדאי לקרוא את הטקסט שוב ולנסות טקסט נוסף כדי לתרגל.";
+  showScreen('screen-reading-done');
+}
 </script>
+
 </body>
 </html>
