@@ -102,6 +102,19 @@
   .spell-example .sent { font-size:.88rem; color:var(--ink-soft); direction:ltr; }
   .feedback-box { background:var(--bg); border-right:4px solid var(--gold); border-radius:10px; padding:14px 16px; margin-bottom:16px; font-size:.9rem; }
   .speak-btn { display:inline-block; margin-top:8px; background:var(--paper); border:1.5px solid var(--teal); color:var(--teal-dark); border-radius:999px; padding:6px 16px; font-size:.85rem; font-weight:700; cursor:pointer; font-family:'Assistant',sans-serif; }
+  #ai-chat-log { max-height:48vh; overflow-y:auto; margin-bottom:14px; padding-inline:2px; }
+  .ai-bubble-row { display:flex; margin-bottom:10px; }
+  .ai-bubble-row.user { justify-content:flex-start; }
+  .ai-bubble-row.assistant { justify-content:flex-end; }
+  .ai-bubble { max-width:80%; padding:10px 14px; border-radius:14px; font-size:.95rem; line-height:1.5; }
+  .ai-bubble.user { background:var(--bg); border:1.5px solid var(--line); color:var(--ink); direction:ltr; text-align:left; font-family:'Fraunces',serif; border-bottom-left-radius:4px; }
+  .ai-bubble.assistant { background:var(--teal); color:#fff; direction:ltr; text-align:left; font-family:'Fraunces',serif; border-bottom-right-radius:4px; }
+  .ai-translate-link { display:block; margin-top:5px; font-size:.78rem; font-weight:700; cursor:pointer; opacity:.85; font-family:'Assistant',sans-serif; direction:rtl; }
+  .ai-bubble.user .ai-translate-link { color:var(--teal-dark); }
+  .ai-bubble.assistant .ai-translate-link { color:#EAF4F0; }
+  .ai-translation { margin-top:6px; font-size:.82rem; font-family:'Assistant',sans-serif; direction:rtl; opacity:.9; border-top:1px solid rgba(255,255,255,.3); padding-top:5px; }
+  .ai-bubble.user .ai-translation { border-top-color:var(--line); }
+  .ai-thinking { font-size:.85rem; color:var(--ink-soft); margin-bottom:10px; }
   .speak-btn:hover { background:var(--teal); color:#fff; }
   .speak-mini { display:inline-block; margin-right:6px; background:none; border:none; font-size:1rem; cursor:pointer; vertical-align:middle; padding:0; }
 </style>
@@ -199,6 +212,10 @@
         <div class="module-card" onclick="startReading()">
           <div class="txt"><div class="title">קריאת טקסטים</div><div class="sub">טקסט קצר ברמה שלכם + שאלות הבנה</div></div>
           <div class="icon">📖</div>
+        </div>
+        <div class="module-card" onclick="showAIChat()">
+          <div class="txt"><div class="title">שיחה עם AI</div><div class="sub">תרגול שיחה, תרגום ותיקון מילים בזמן אמת</div></div>
+          <div class="icon">🤖</div>
         </div>
       </div>
       <button class="link-small" onclick="restartAll()">איפוס התקדמות ובדיקת רמה מחדש</button>
@@ -430,6 +447,22 @@
         <button class="btn secondary" onclick="goHome()">עמוד הבית</button>
         <button class="btn" onclick="startReading()">טקסט נוסף</button>
       </div>
+    </div>
+
+    <div id="screen-ai-chat" class="hidden">
+      <h2>שיחה עם ה-AI 🤖</h2>
+      <p style="margin-bottom:10px;">כתבו לו משפט באנגלית — הוא ישוחח איתכם, יתקן מילים שגויות בעדינות, ויכול לתרגם כל הודעה ללחיצת כפתור.</p>
+      <div id="ai-unavailable" class="hidden feedback-box" style="margin-bottom:14px;"></div>
+      <div id="ai-chat-log"></div>
+      <div id="ai-check-box" class="hidden feedback-box" style="margin-bottom:10px;"></div>
+      <div class="field" style="margin-bottom:8px;">
+        <input type="text" id="ai-chat-input" placeholder="כתבו כאן משפט באנגלית..." dir="ltr" style="text-align:left; font-family:'Fraunces',serif;" onkeydown="if(event.key==='Enter'){event.preventDefault(); sendAIChat();}">
+      </div>
+      <div class="btn-row" style="margin-top:0;">
+        <button class="btn secondary" id="ai-check-btn" onclick="checkAISentence()">בדוק לי משפט</button>
+        <button class="btn" id="ai-send-btn" onclick="sendAIChat()">שלח</button>
+      </div>
+      <button class="link-small" onclick="goHome()">חזרה לעמוד הבית</button>
     </div>
 
   </div>
@@ -1787,6 +1820,162 @@ function finishReading() {
     ? "הבנת הנקרא מצוינת! כל הכבוד."
     : "כדאי לקרוא את הטקסט שוב ולנסות טקסט נוסף כדי לתרגל.";
   showScreen('screen-reading-done');
+}
+
+/* ---------- שיחה עם AI (Claude sample capability) ---------- */
+let aiSampleFn = null;
+let aiSampleChecked = false;
+let aiChatTurns = [];
+let aiChatBusy = false;
+
+async function ensureAISample() {
+  if (aiSampleChecked) return aiSampleFn;
+  aiSampleChecked = true;
+  try {
+    if (window.claude && typeof window.claude.use === 'function') {
+      aiSampleFn = await window.claude.use('sample');
+    } else {
+      aiSampleFn = null;
+    }
+  } catch (e) {
+    aiSampleFn = null;
+  }
+  return aiSampleFn;
+}
+
+async function showAIChat() {
+  showScreen('screen-ai-chat');
+  const unavail = document.getElementById('ai-unavailable');
+  const sendBtn = document.getElementById('ai-send-btn');
+  const checkBtn = document.getElementById('ai-check-btn');
+  const input = document.getElementById('ai-chat-input');
+  unavail.classList.add('hidden');
+  const sample = await ensureAISample();
+  if (!sample) {
+    unavail.classList.remove('hidden');
+    unavail.textContent = 'תכונת ה-AI זמינה כרגע רק כשפותחים את האפליקציה דרך הקישור המפורסם ומחוברים לחשבון Claude (בחינם). כל שאר חלקי האפליקציה עובדים כרגיל בלי זה.';
+    sendBtn.disabled = true; checkBtn.disabled = true; input.disabled = true;
+    return;
+  }
+  sendBtn.disabled = false; checkBtn.disabled = false; input.disabled = false;
+  if (aiChatTurns.length === 0) renderAIWelcome();
+}
+
+function renderAIWelcome() {
+  const log = document.getElementById('ai-chat-log');
+  log.innerHTML = '';
+  addAIBubble('assistant', "Hi! I'm here to practice English with you. Write me a sentence and I'll answer, help translate, and gently fix any word that's not quite right. How are you today?");
+}
+
+function aiSystemPrompt() {
+  const lvl = tierInfo(state.tier).name;
+  return "You are a warm, patient English conversation partner and tutor for a Hebrew-speaking student learning English (current level: " + lvl + "). " +
+    "Reply only in English, in 2-4 short, simple sentences suited to that level. " +
+    "If the student uses an English word incorrectly or unnaturally, gently point it out in one short sentence, give the correct word, then continue the conversation naturally. " +
+    "Fix at most one mistake per turn and never lecture about grammar rules. " +
+    "If the student explicitly asks for a translation of something, give a short Hebrew translation of just that part, then continue in English.\n\nStudent: ";
+}
+
+function addAIBubble(role, text, opts) {
+  opts = opts || {};
+  const log = document.getElementById('ai-chat-log');
+  const row = document.createElement('div');
+  row.className = 'ai-bubble-row ' + role;
+  const bubble = document.createElement('div');
+  bubble.className = 'ai-bubble ' + role;
+  bubble.textContent = text;
+  if (!opts.noTranslate) {
+    const link = document.createElement('span');
+    link.className = 'ai-translate-link';
+    link.textContent = '🔤 תרגם לעברית';
+    link.onclick = () => translateBubble(bubble, link, text);
+    bubble.appendChild(link);
+  }
+  row.appendChild(bubble);
+  log.appendChild(row);
+  log.scrollTop = log.scrollHeight;
+  return bubble;
+}
+
+async function translateBubble(bubble, link, text) {
+  const sample = await ensureAISample();
+  if (!sample) return;
+  link.textContent = 'מתרגם...';
+  link.onclick = null;
+  try {
+    const result = await sample('Translate the following English text to Hebrew. Reply with only the Hebrew translation, nothing else:\n\n"' + text + '"');
+    const tDiv = document.createElement('div');
+    tDiv.className = 'ai-translation';
+    tDiv.textContent = result.text.trim();
+    bubble.appendChild(tDiv);
+    link.remove();
+  } catch (e) {
+    link.textContent = '🔤 תרגם לעברית';
+    link.onclick = () => translateBubble(bubble, link, text);
+  }
+  const log = document.getElementById('ai-chat-log');
+  log.scrollTop = log.scrollHeight;
+}
+
+async function sendAIChat() {
+  if (aiChatBusy) return;
+  const input = document.getElementById('ai-chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const sample = await ensureAISample();
+  if (!sample) return;
+  aiChatBusy = true;
+  input.value = '';
+  document.getElementById('ai-send-btn').disabled = true;
+  addAIBubble('user', text);
+  if (aiChatTurns.length === 0) {
+    aiChatTurns.push({ role: 'user', content: aiSystemPrompt() + text });
+  } else {
+    aiChatTurns.push({ role: 'user', content: text });
+  }
+  const log = document.getElementById('ai-chat-log');
+  const thinking = document.createElement('div');
+  thinking.className = 'ai-thinking';
+  thinking.textContent = 'חושב...';
+  log.appendChild(thinking);
+  log.scrollTop = log.scrollHeight;
+  try {
+    const result = await sample(aiChatTurns, { cache: false });
+    thinking.remove();
+    addAIBubble('assistant', result.text.trim());
+    aiChatTurns.push({ role: 'assistant', content: result.text });
+  } catch (e) {
+    thinking.remove();
+    let msg = 'משהו השתבש, נסו שוב.';
+    if (e.code === 'not_granted') msg = 'צריך לאשר שימוש ב-AI כדי להמשיך.';
+    if (e.code === 'rate_limited') msg = 'יותר מדי שאלות בזמן קצר — נסו שוב בעוד רגע.';
+    addAIBubble('assistant', msg, { noTranslate: true });
+    aiChatTurns.pop();
+  }
+  aiChatBusy = false;
+  document.getElementById('ai-send-btn').disabled = false;
+}
+
+async function checkAISentence() {
+  const input = document.getElementById('ai-chat-input');
+  const text = input.value.trim();
+  const box = document.getElementById('ai-check-box');
+  if (!text) return;
+  const sample = await ensureAISample();
+  if (!sample) return;
+  box.classList.remove('hidden');
+  box.textContent = 'בודק...';
+  document.getElementById('ai-check-btn').disabled = true;
+  try {
+    const prompt = 'A Hebrew-speaking English learner wrote this sentence: "' + text + '". ' +
+      'Check it for wrong word choice, spelling, or grammar. Reply in Hebrew, very briefly (1-3 lines): ' +
+      'if it is correct, say so encouragingly; if not, show the corrected sentence and explain in one short sentence what word or form was wrong and what to use instead.';
+    const result = await sample(prompt);
+    box.textContent = result.text.trim();
+  } catch (e) {
+    box.textContent = 'לא הצלחנו לבדוק כרגע, נסו שוב.';
+  }
+  document.getElementById('ai-check-btn').disabled = false;
 }
 </script>
 
