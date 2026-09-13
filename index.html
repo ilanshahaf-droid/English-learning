@@ -225,6 +225,9 @@
           <div class="stat"><div class="num" id="achv-listening">0</div><div class="lbl">משחק האזנה</div></div>
           <div class="stat"><div class="num" id="achv-sentence">0</div><div class="lbl">השלמת משפטים</div></div>
         </div>
+        <div class="stat-row">
+          <div class="stat"><div class="num" id="achv-opposites">0</div><div class="lbl">משחק הפכים</div></div>
+        </div>
       </div>
       <div class="achv-section">
         <h3>תגים</h3>
@@ -287,6 +290,10 @@
         <div class="module-card" onclick="startSentence()">
           <div class="txt"><div class="title">השלמת משפטים</div><div class="sub">השלימו את המילה החסרה במשפט</div></div>
           <div class="icon">📝</div>
+        </div>
+        <div class="module-card" onclick="startOpposites()">
+          <div class="txt"><div class="title">משחק הפכים</div><div class="sub">מה ההפך של המילה?</div></div>
+          <div class="icon">🔄</div>
         </div>
       </div>
       <button class="link-small" onclick="goHome()">חזרה לעמוד הבית</button>
@@ -383,6 +390,22 @@
       </div>
     </div>
 
+    <div id="screen-opposites" class="hidden">
+      <div class="progress-bar"><div class="progress-fill" id="opp-progress"></div></div>
+      <h2 id="opp-question"></h2>
+      <div id="opp-options"></div>
+    </div>
+
+    <div id="screen-opposites-done" class="hidden" style="text-align:center;">
+      <div class="badge">סיום!</div>
+      <h1 id="opp-done-title"></h1>
+      <div class="feedback-box" id="opp-done-feedback"></div>
+      <div class="btn-row">
+        <button class="btn secondary" onclick="showGamesHub()">משחקים נוספים</button>
+        <button class="btn" onclick="startOpposites()">שוב</button>
+      </div>
+    </div>
+
     <div id="screen-reading-passage" class="hidden">
       <h2 id="reading-title"></h2>
       <div class="spell-example" style="text-align:right;">
@@ -417,7 +440,8 @@
 const CATEGORIES = [
   {key:"colors", name:"צבעים"}, {key:"animals", name:"חיות"}, {key:"food", name:"אוכל"}, {key:"family", name:"משפחה"},
   {key:"home", name:"בית"}, {key:"nature", name:"טבע"}, {key:"travel", name:"נסיעות"},
-  {key:"work", name:"עבודה ולימודים"}, {key:"feelings", name:"רגשות"}, {key:"numbers", name:"מספרים וזמן"}, {key:"body", name:"גוף האדם"}
+  {key:"work", name:"עבודה ולימודים"}, {key:"feelings", name:"רגשות"}, {key:"numbers", name:"מספרים וזמן"}, {key:"body", name:"גוף האדם"},
+  {key:"general", name:"כללי"}
 ];
 
 /* ---------- מאגר אוצר מילים (8 נושאים x 3 רמות) ---------- */
@@ -436,10 +460,13 @@ const VOCAB = [
   {w:"rabbit",t:"ארנב",ex:"The rabbit jumped into the garden.",lvl:2,cat:"animals"},
   {w:"elephant",t:"פיל",ex:"An elephant never forgets.",lvl:2,cat:"animals"},
   {w:"spider",t:"עכביש",ex:"There is a spider on the wall.",lvl:2,cat:"animals"},
+  {w:"lion",t:"אריה",ex:"The lion is the king of the jungle.",lvl:2,cat:"animals"},
   {w:"mammal",t:"יונק",ex:"A whale is a mammal, not a fish.",lvl:3,cat:"animals"},
   {w:"predator",t:"טורף",ex:"The lion is a dangerous predator.",lvl:3,cat:"animals"},
   {w:"endangered",t:"בסכנת הכחדה",ex:"This species is endangered.",lvl:3,cat:"animals"},
   {w:"camouflage",t:"הסוואה",ex:"The insect uses camouflage to hide.",lvl:3,cat:"animals"},
+  {w:"kitten",t:"גור חתול",ex:"The kitten is playing with a ball of yarn.",lvl:1,cat:"animals"},
+  {w:"horse",t:"סוס",ex:"She loves to ride a horse.",lvl:1,cat:"animals"},
   // food
   {w:"bread",t:"לחם",ex:"I eat bread every morning.",lvl:1,cat:"food"},
   {w:"milk",t:"חלב",ex:"She drinks milk with breakfast.",lvl:1,cat:"food"},
@@ -453,6 +480,12 @@ const VOCAB = [
   {w:"appetite",t:"תיאבון",ex:"He has a big appetite today.",lvl:3,cat:"food"},
   {w:"cuisine",t:"מטבח (סוג בישול)",ex:"I love Italian cuisine.",lvl:3,cat:"food"},
   {w:"savory",t:"טעים ומלוח",ex:"I prefer savory food over sweet.",lvl:3,cat:"food"},
+  {w:"banana",t:"בננה",ex:"I eat a banana every morning.",lvl:1,cat:"food"},
+  {w:"tomato",t:"עגבנייה",ex:"She put a tomato in the salad.",lvl:1,cat:"food"},
+  {w:"pasta",t:"פסטה",ex:"We had pasta for dinner.",lvl:1,cat:"food"},
+  {w:"pizza",t:"פיצה",ex:"The children love to eat pizza.",lvl:1,cat:"food"},
+  {w:"tea",t:"תה",ex:"She drinks a cup of tea every evening.",lvl:1,cat:"food"},
+  {w:"plum",t:"שזיף",ex:"He picked a ripe plum from the tree.",lvl:2,cat:"food"},
   // family
   {w:"mother",t:"אמא",ex:"My mother works at a school.",lvl:1,cat:"family"},
   {w:"father",t:"אבא",ex:"My father likes to cook.",lvl:1,cat:"family"},
@@ -479,6 +512,14 @@ const VOCAB = [
   {w:"renovate",t:"לשפץ",ex:"We plan to renovate the house.",lvl:3,cat:"home"},
   {w:"tenant",t:"שוכר",ex:"The tenant pays rent every month.",lvl:3,cat:"home"},
   {w:"cozy",t:"נעים וחמים",ex:"The living room feels cozy.",lvl:3,cat:"home"},
+  {w:"bedroom",t:"חדר שינה",ex:"My bedroom is upstairs.",lvl:1,cat:"home"},
+  {w:"desk",t:"שולחן כתיבה",ex:"He does his homework at his desk.",lvl:1,cat:"home"},
+  {w:"pillow",t:"כרית",ex:"She put her head on the pillow.",lvl:1,cat:"home"},
+  {w:"fence",t:"גדר",ex:"There is a fence around the garden.",lvl:2,cat:"home"},
+  {w:"bed",t:"מיטה",ex:"The cat is sleeping on the bed.",lvl:1,cat:"home"},
+  {w:"lamp",t:"מנורה",ex:"She turned on the lamp to read.",lvl:1,cat:"home"},
+  {w:"pail",t:"דלי",ex:"He filled the pail with water.",lvl:2,cat:"home"},
+  {w:"tap",t:"ברז",ex:"Please turn off the tap.",lvl:2,cat:"home"},
   // nature
   {w:"tree",t:"עץ",ex:"The tree is very tall.",lvl:1,cat:"nature"},
   {w:"sun",t:"שמש",ex:"The sun is shining today.",lvl:1,cat:"nature"},
@@ -492,6 +533,10 @@ const VOCAB = [
   {w:"ecosystem",t:"מערכת אקולוגית",ex:"Coral reefs are a fragile ecosystem.",lvl:3,cat:"nature"},
   {w:"drought",t:"בצורת",ex:"The region suffered a long drought.",lvl:3,cat:"nature"},
   {w:"sustainable",t:"בר קיימא",ex:"We need sustainable energy sources.",lvl:3,cat:"nature"},
+  {w:"moon",t:"ירח",ex:"The moon was bright last night.",lvl:1,cat:"nature"},
+  {w:"star",t:"כוכב",ex:"We counted the stars in the sky.",lvl:1,cat:"nature"},
+  {w:"cloud",t:"ענן",ex:"A big cloud covered the sun.",lvl:1,cat:"nature"},
+  {w:"wave",t:"גל",ex:"The waves were high at the beach.",lvl:2,cat:"nature"},
   // travel
   {w:"bus",t:"אוטובוס",ex:"We took the bus to school.",lvl:1,cat:"travel"},
   {w:"train",t:"רכבת",ex:"The train arrives at noon.",lvl:1,cat:"travel"},
@@ -505,6 +550,8 @@ const VOCAB = [
   {w:"destination",t:"יעד",ex:"Our final destination is Rome.",lvl:3,cat:"travel"},
   {w:"accommodation",t:"מקום לינה",ex:"We booked our accommodation online.",lvl:3,cat:"travel"},
   {w:"excursion",t:"טיול קצר",ex:"We went on an excursion to the old town.",lvl:3,cat:"travel"},
+  {w:"car",t:"מכונית",ex:"We drove to the beach in our car.",lvl:1,cat:"travel"},
+  {w:"visit",t:"לבקר",ex:"We will visit our grandparents this weekend.",lvl:1,cat:"travel"},
   // work
   {w:"teacher",t:"מורה",ex:"The teacher explains the lesson.",lvl:1,cat:"work"},
   {w:"student",t:"תלמיד",ex:"The student is reading a book.",lvl:1,cat:"work"},
@@ -518,6 +565,9 @@ const VOCAB = [
   {w:"qualification",t:"הסמכה",ex:"She has the right qualifications.",lvl:3,cat:"work"},
   {w:"productivity",t:"פרודוקטיביות",ex:"Good sleep improves productivity.",lvl:3,cat:"work"},
   {w:"collaborate",t:"לשתף פעולה",ex:"The teams collaborate on the project.",lvl:3,cat:"work"},
+  {w:"pencil",t:"עיפרון",ex:"She wrote the answer with a pencil.",lvl:1,cat:"work"},
+  {w:"work",t:"עבודה / לעבוד",ex:"He goes to work every morning.",lvl:1,cat:"work"},
+  {w:"chart",t:"תרשים",ex:"The teacher showed a chart on the board.",lvl:3,cat:"work"},
   // feelings
   {w:"happy",t:"שמח",ex:"He is very happy today.",lvl:1,cat:"feelings"},
   {w:"sad",t:"עצוב",ex:"She feels sad about the news.",lvl:1,cat:"feelings"},
@@ -531,6 +581,8 @@ const VOCAB = [
   {w:"grateful",t:"אסיר תודה",ex:"I am grateful for your help.",lvl:3,cat:"feelings"},
   {w:"reluctant",t:"מסויג",ex:"He was reluctant to agree.",lvl:3,cat:"feelings"},
   {w:"optimistic",t:"אופטימי",ex:"She stayed optimistic about the future.",lvl:3,cat:"feelings"},
+  {w:"tense",t:"מתוח",ex:"He felt tense before the exam.",lvl:3,cat:"feelings"},
+  {w:"mad",t:"כועס",ex:"She was mad when she lost her keys.",lvl:2,cat:"feelings"},
   // numbers & time
   {w:"one",t:"אחת",ex:"I have one brother.",lvl:1,cat:"numbers"},
   {w:"two",t:"שתיים",ex:"She has two cats.",lvl:1,cat:"numbers"},
@@ -540,10 +592,14 @@ const VOCAB = [
   {w:"dozen",t:"תריסר (12)",ex:"I bought a dozen eggs.",lvl:2,cat:"numbers"},
   {w:"tomorrow",t:"מחר",ex:"We will meet tomorrow.",lvl:2,cat:"numbers"},
   {w:"century",t:"מאה שנה",ex:"This building is over a century old.",lvl:2,cat:"numbers"},
+  {w:"Thursday",t:"יום חמישי",ex:"We have English class on Thursday.",lvl:2,cat:"numbers"},
+  {w:"February",t:"פברואר",ex:"Her birthday is in February.",lvl:2,cat:"numbers"},
+  {w:"minute",t:"דקה",ex:"Wait one minute, please.",lvl:2,cat:"numbers"},
   {w:"quantity",t:"כמות",ex:"We need a large quantity of paper.",lvl:3,cat:"numbers"},
   {w:"percentage",t:"אחוז",ex:"A small percentage of students were absent.",lvl:3,cat:"numbers"},
   {w:"fraction",t:"שבר",ex:"One half is a simple fraction.",lvl:3,cat:"numbers"},
   {w:"decade",t:"עשור",ex:"He lived there for a decade.",lvl:3,cat:"numbers"},
+  {w:"seven",t:"שבע",ex:"My house has seven rooms.",lvl:1,cat:"numbers"},
   // body
   {w:"head",t:"ראש",ex:"My head hurts a little.",lvl:1,cat:"body"},
   {w:"hand",t:"יד",ex:"She raised her hand.",lvl:1,cat:"body"},
@@ -557,6 +613,319 @@ const VOCAB = [
   {w:"joint",t:"מפרק",ex:"The knee is a large joint.",lvl:3,cat:"body"},
   {w:"muscle",t:"שריר",ex:"Exercise makes your muscles stronger.",lvl:3,cat:"body"},
   {w:"nerve",t:"עצב",ex:"A nerve sends signals to the brain.",lvl:3,cat:"body"},
+  {w:"wrist",t:"פרק כף היד",ex:"She wears a watch on her wrist.",lvl:3,cat:"body"},
+  {w:"fat",t:"שמן",ex:"The fat cat sleeps all day.",lvl:1,cat:"body"},
+  {w:"sweat",t:"זיעה",ex:"He was covered in sweat after running.",lvl:2,cat:"body"},
+  // general (from graded word lists)
+  {w:"stop",t:"לעצור",ex:"Please stop here.",lvl:1,cat:"general"},
+  {w:"yes",t:"כן",ex:"Yes, I would like some water.",lvl:1,cat:"general"},
+  {w:"cup",t:"כוס",ex:"There is a cup on the table.",lvl:1,cat:"general"},
+  {w:"boy",t:"ילד",ex:"The boy is playing outside.",lvl:1,cat:"general"},
+  {w:"ball",t:"כדור",ex:"The children are playing with a ball.",lvl:1,cat:"general"},
+  {w:"play",t:"לשחק",ex:"Let's play in the garden.",lvl:1,cat:"general"},
+  {w:"sheep",t:"כבשה",ex:"There are sheep on the farm.",lvl:1,cat:"general"},
+  {w:"farm",t:"חווה",ex:"My uncle has a farm.",lvl:1,cat:"general"},
+  {w:"read",t:"לקרוא",ex:"I like to read every night.",lvl:1,cat:"general"},
+  {w:"balloon",t:"בלון",ex:"She is holding a red balloon.",lvl:1,cat:"general"},
+  {w:"chicken",t:"תרנגולת",ex:"The chicken lives on the farm.",lvl:1,cat:"general"},
+  {w:"number",t:"מספר",ex:"What is your phone number?",lvl:1,cat:"general"},
+  {w:"show",t:"להראות",ex:"Can you show me the way?",lvl:1,cat:"general"},
+  {w:"sport",t:"ספורט",ex:"My favorite sport is basketball.",lvl:1,cat:"general"},
+  {w:"puzzle",t:"פאזל",ex:"We built a big puzzle together.",lvl:1,cat:"general"},
+  {w:"school",t:"בית ספר",ex:"I walk to school every day.",lvl:1,cat:"general"},
+  {w:"try",t:"לנסות",ex:"You should try this cake.",lvl:1,cat:"general"},
+  {w:"funny",t:"מצחיק",ex:"That movie was very funny.",lvl:1,cat:"general"},
+  {w:"child",t:"ילד/ה",ex:"Every child needs love and care.",lvl:1,cat:"general"},
+  {w:"ghost",t:"רוח רפאים",ex:"The children told a scary ghost story.",lvl:1,cat:"general"},
+  {w:"saw",t:"ראה (עבר)",ex:"I saw a great movie last night.",lvl:2,cat:"general"},
+  {w:"catch",t:"לתפוס",ex:"Can you catch the ball?",lvl:2,cat:"general"},
+  {w:"soap",t:"סבון",ex:"Wash your hands with soap.",lvl:2,cat:"general"},
+  {w:"jumped",t:"קפץ (עבר)",ex:"The dog jumped over the fence.",lvl:2,cat:"general"},
+  {w:"new",t:"חדש",ex:"I bought a new bag.",lvl:2,cat:"general"},
+  {w:"scream",t:"לצרוח",ex:"She started to scream with excitement.",lvl:2,cat:"general"},
+  {w:"quiet",t:"שקט",ex:"Please be quiet in the library.",lvl:2,cat:"general"},
+  {w:"friend",t:"חבר",ex:"She is my best friend.",lvl:2,cat:"general"},
+  {w:"water",t:"מים",ex:"I drink a lot of water every day.",lvl:2,cat:"general"},
+  {w:"pink",t:"ורוד",ex:"She wore a pink dress.",lvl:2,cat:"general"},
+  {w:"strong",t:"חזק",ex:"The strong man lifted the table.",lvl:2,cat:"general"},
+  {w:"thirst",t:"צמא",ex:"He drank water to quench his thirst.",lvl:2,cat:"general"},
+  {w:"world",t:"עולם",ex:"The world is full of amazing places.",lvl:2,cat:"general"},
+  {w:"quite",t:"די / למדי",ex:"It is quite cold today.",lvl:2,cat:"general"},
+  {w:"brain",t:"מוח",ex:"Reading is good exercise for the brain.",lvl:2,cat:"general"},
+  {w:"hope",t:"תקווה",ex:"I hope you feel better soon.",lvl:2,cat:"general"},
+  {w:"please",t:"בבקשה",ex:"Please close the door.",lvl:2,cat:"general"},
+  {w:"June",t:"יוני",ex:"School ends in June.",lvl:2,cat:"general"},
+  {w:"boil",t:"לרתוח",ex:"Boil the water before you make tea.",lvl:2,cat:"general"},
+  {w:"cake",t:"עוגה",ex:"We baked a chocolate cake.",lvl:2,cat:"general"},
+  {w:"town",t:"עיירה",ex:"They live in a small town.",lvl:2,cat:"general"},
+  {w:"pie",t:"פאי",ex:"My grandmother makes apple pie.",lvl:2,cat:"general"},
+  {w:"earth",t:"כדור הארץ",ex:"The earth moves around the sun.",lvl:2,cat:"general"},
+  {w:"sugar",t:"סוכר",ex:"Do you take sugar in your tea?",lvl:2,cat:"general"},
+  {w:"give",t:"לתת",ex:"Can you give me a hand?",lvl:2,cat:"general"},
+  {w:"thief",t:"גנב",ex:"The thief ran away quickly.",lvl:2,cat:"general"},
+  {w:"because",t:"כי / מפני ש",ex:"I stayed home because I was sick.",lvl:2,cat:"general"},
+  {w:"eat",t:"לאכול",ex:"I eat breakfast every morning.",lvl:2,cat:"general"},
+  {w:"English",t:"אנגלית",ex:"English lessons are very interesting.",lvl:2,cat:"general"},
+  {w:"write",t:"לכתוב",ex:"It's easy to write in your own language.",lvl:2,cat:"general"},
+  {w:"basketball",t:"כדורסל",ex:"It's fun to play basketball.",lvl:2,cat:"general"},
+  {w:"city",t:"עיר",ex:"Tel Aviv is a big city.",lvl:2,cat:"general"},
+  {w:"breakfast",t:"ארוחת בוקר",ex:"We eat cereal for breakfast.",lvl:2,cat:"general"},
+  {w:"question",t:"שאלה",ex:"We answer a question in class.",lvl:2,cat:"general"},
+  {w:"sell",t:"למכור",ex:"They sell fruit at the market.",lvl:2,cat:"general"},
+  {w:"important",t:"חשוב",ex:"It is important to sleep well.",lvl:2,cat:"general"},
+  {w:"know",t:"לדעת",ex:"I know how to ride a bike.",lvl:2,cat:"general"},
+  {w:"build",t:"לבנות",ex:"When I grow up, I will build my own house.",lvl:2,cat:"general"},
+  {w:"different",t:"שונה",ex:"Playing guitar is different from playing drums.",lvl:2,cat:"general"},
+  {w:"hobby",t:"תחביב",ex:"My favorite hobby is swimming.",lvl:2,cat:"general"},
+  {w:"early",t:"מוקדם",ex:"I hate waking up early.",lvl:2,cat:"general"},
+  {w:"pocket money",t:"דמי כיס",ex:"I saved my pocket money for a new game.",lvl:2,cat:"general"},
+  {w:"competition",t:"תחרות",ex:"She won first prize in the competition.",lvl:2,cat:"general"},
+  {w:"space",t:"מקום / חלל",ex:"There is no space left in my bag.",lvl:2,cat:"general"},
+  {w:"computer",t:"מחשב",ex:"He does his homework on the computer.",lvl:3,cat:"general"},
+  {w:"turn",t:"תור / לפנות",ex:"Wait for your turn, please.",lvl:3,cat:"general"},
+  {w:"honest",t:"כן / ישר",ex:"Please be honest with me.",lvl:3,cat:"general"},
+  {w:"taught",t:"לימד (עבר)",ex:"Last year she taught computer skills.",lvl:3,cat:"general"},
+  {w:"walk",t:"ללכת",ex:"We went for a long walk.",lvl:3,cat:"general"},
+  {w:"key",t:"מפתח",ex:"I lost the key to my house.",lvl:3,cat:"general"},
+  {w:"virus",t:"וירוס",ex:"He was sick with a virus.",lvl:3,cat:"general"},
+  {w:"lesson",t:"שיעור",ex:"Today's lesson was about grammar.",lvl:3,cat:"general"},
+  {w:"naughty",t:"שובב",ex:"The naughty puppy chewed my shoe.",lvl:3,cat:"general"},
+  {w:"people",t:"אנשים",ex:"Many people came to the event.",lvl:3,cat:"general"},
+  {w:"beauty",t:"יופי",ex:"The beauty of the sunset amazed us.",lvl:3,cat:"general"},
+  {w:"put",t:"לשים",ex:"Please put the book on the shelf.",lvl:3,cat:"general"},
+  {w:"sight",t:"ראייה / מראה",ex:"The mountain view was a beautiful sight.",lvl:3,cat:"general"},
+  {w:"answer",t:"תשובה",ex:"I don't know the answer to this question.",lvl:3,cat:"general"},
+  {w:"warn",t:"להזהיר",ex:"They warned us about the storm.",lvl:3,cat:"general"},
+  {w:"duet",t:"דואט",ex:"The two singers performed a duet.",lvl:3,cat:"general"},
+  {w:"weight",t:"משקל",ex:"The suitcase is over the weight limit.",lvl:3,cat:"general"},
+  {w:"knocked",t:"דפק (עבר)",ex:"Someone knocked on the door.",lvl:3,cat:"general"},
+  {w:"great",t:"נהדר",ex:"That was a great idea.",lvl:3,cat:"general"},
+  {w:"thoughtful",t:"מתחשב",ex:"It was thoughtful of you to help.",lvl:3,cat:"general"},
+  {w:"creature",t:"יצור",ex:"The movie showed a strange creature.",lvl:3,cat:"general"},
+  {w:"chemist",t:"כימאי",ex:"The chemist studied a new material.",lvl:3,cat:"general"},
+  {w:"envious",t:"מקנא",ex:"He felt envious of his friend's new bike.",lvl:3,cat:"general"},
+  {w:"phenomenon",t:"תופעה",ex:"The northern lights are a natural phenomenon.",lvl:3,cat:"general"},
+  {w:"acceptance",t:"קבלה",ex:"She felt a sense of acceptance from the group.",lvl:3,cat:"general"},
+  {w:"advantage",t:"יתרון",ex:"Speaking two languages is a big advantage.",lvl:3,cat:"general"},
+  {w:"doubtless",t:"ללא ספק",ex:"He will doubtless succeed in the exam.",lvl:3,cat:"general"},
+  {w:"confusion",t:"בלבול",ex:"There was some confusion about the schedule.",lvl:3,cat:"general"},
+  {w:"aggression",t:"תוקפנות",ex:"The coach spoke about controlling aggression in sports.",lvl:3,cat:"general"},
+  {w:"efficient",t:"יעיל",ex:"This is a very efficient way to study.",lvl:3,cat:"general"},
+  {w:"resignation",t:"התפטרות",ex:"He announced his resignation from the job.",lvl:3,cat:"general"},
+  {w:"laugh",t:"צחוק / לצחוק",ex:"Her jokes always make me laugh.",lvl:3,cat:"general"},
+  {w:"rough",t:"מחוספס / גס",ex:"The road was rough and full of stones.",lvl:3,cat:"general"},
+  {w:"solution",t:"פתרון",ex:"We found a good solution to the problem.",lvl:3,cat:"general"},
+  {w:"oxygen",t:"חמצן",ex:"Plants produce oxygen for us to breathe.",lvl:3,cat:"general"},
+  {w:"kindhearted",t:"טוב לב",ex:"She is a kindhearted person who helps everyone.",lvl:3,cat:"general"},
+  {w:"unique",t:"ייחודי",ex:"Every snowflake is unique.",lvl:3,cat:"general"},
+  {w:"conscientious",t:"מצפוני / מסור",ex:"He is a conscientious student who never skips homework.",lvl:3,cat:"general"},
+  {w:"emphasize",t:"להדגיש",ex:"The teacher wanted to emphasize the main idea.",lvl:3,cat:"general"},
+  {w:"souvenir",t:"מזכרת",ex:"She bought a souvenir from her trip.",lvl:3,cat:"general"},
+  {w:"humiliation",t:"השפלה",ex:"He felt humiliation after making the mistake in public.",lvl:3,cat:"general"},
+  {w:"participate",t:"להשתתף",ex:"All students must participate in the project.",lvl:3,cat:"general"},
+  {w:"industrious",t:"חרוץ",ex:"The industrious worker finished early.",lvl:3,cat:"general"},
+  {w:"thorough",t:"יסודי",ex:"She did a thorough check of the report.",lvl:3,cat:"general"},
+  // general - round 2 (from graded word lists, Shomron test, Rantissi & Elkoury lists)
+  {w:"light",t:"אור / קל",ex:"Please turn on the light.",lvl:2,cat:"general"},
+  {w:"break",t:"הפסקה / לשבור",ex:"We have a short break between lessons.",lvl:2,cat:"general"},
+  {w:"able",t:"מסוגל",ex:"She is able to solve the problem alone.",lvl:2,cat:"general"},
+  {w:"salad",t:"סלט",ex:"We cut the vegetables for the salad.",lvl:2,cat:"general"},
+  {w:"heard",t:"שמע (עבר)",ex:"I heard a strange noise last night.",lvl:2,cat:"general"},
+  {w:"decide",t:"להחליט",ex:"It's hard to decide what to eat.",lvl:2,cat:"general"},
+  {w:"idea",t:"רעיון",ex:"That's a great idea!",lvl:2,cat:"general"},
+  {w:"chain",t:"שרשרת",ex:"She wore a gold chain around her neck.",lvl:2,cat:"general"},
+  {w:"unusual",t:"יוצא דופן",ex:"It was an unusual sound for a quiet night.",lvl:2,cat:"general"},
+  {w:"bicycle",t:"אופניים",ex:"He rides his bicycle to school.",lvl:2,cat:"general"},
+  {w:"vowel",t:"תנועה (אות)",ex:"A, E, I, O and U are vowels.",lvl:2,cat:"general"},
+  {w:"threat",t:"איום",ex:"The storm was a threat to the small boats.",lvl:2,cat:"general"},
+  {w:"serious",t:"רציני",ex:"This is a serious problem.",lvl:2,cat:"general"},
+  {w:"blood",t:"דם",ex:"The doctor took a blood sample.",lvl:2,cat:"general"},
+  {w:"whole",t:"שלם",ex:"She ate the whole apple.",lvl:2,cat:"general"},
+  {w:"envelope",t:"מעטפה",ex:"He put the letter in an envelope.",lvl:2,cat:"general"},
+  {w:"certain",t:"בטוח / מסוים",ex:"I am certain that she will come.",lvl:2,cat:"general"},
+  {w:"adjective",t:"שם תואר",ex:"'Happy' is an adjective.",lvl:2,cat:"general"},
+  {w:"leather",t:"עור (חומר)",ex:"He bought a leather jacket.",lvl:2,cat:"general"},
+  {w:"machine",t:"מכונה",ex:"This machine washes the dishes.",lvl:2,cat:"general"},
+  {w:"necessary",t:"הכרחי",ex:"It is necessary to bring a passport.",lvl:2,cat:"general"},
+  {w:"success",t:"הצלחה",ex:"The trip was a great success.",lvl:2,cat:"general"},
+  {w:"suggestion",t:"הצעה",ex:"Do you have a suggestion for dinner?",lvl:2,cat:"general"},
+  {w:"calm",t:"רגוע",ex:"Try to stay calm during the test.",lvl:2,cat:"general"},
+  {w:"celebration",t:"חגיגה",ex:"We had a small celebration for her birthday.",lvl:2,cat:"general"},
+  {w:"breathe",t:"לנשום",ex:"Take a deep breath and breathe slowly.",lvl:2,cat:"general"},
+  {w:"brighten",t:"להאיר / לשמח",ex:"Her smile can brighten anyone's day.",lvl:2,cat:"general"},
+  {w:"especially",t:"במיוחד",ex:"I love fruit, especially strawberries.",lvl:2,cat:"general"},
+  {w:"dangerous",t:"מסוכן",ex:"Swimming there can be dangerous.",lvl:2,cat:"general"},
+  {w:"passage",t:"קטע (טקסט) / מעבר",ex:"Read the passage and answer the questions.",lvl:2,cat:"general"},
+  {w:"surprise",t:"הפתעה",ex:"We planned a surprise party for her.",lvl:2,cat:"general"},
+  {w:"dream",t:"חלום",ex:"I had a strange dream last night.",lvl:2,cat:"general"},
+  {w:"age",t:"גיל",ex:"What is your age?",lvl:2,cat:"general"},
+  {w:"difference",t:"הבדל",ex:"There is a big difference between the two plans.",lvl:2,cat:"general"},
+  {w:"fix",t:"לתקן",ex:"Can you fix my computer?",lvl:2,cat:"general"},
+  {w:"collect",t:"לאסוף",ex:"He likes to collect old coins.",lvl:2,cat:"general"},
+  {w:"present",t:"להציג / מתנה",ex:"She will present her project tomorrow.",lvl:2,cat:"general"},
+  {w:"annoy",t:"להרגיז",ex:"Loud noises annoy me.",lvl:2,cat:"general"},
+  {w:"talented",t:"מוכשר",ex:"He is a talented musician.",lvl:2,cat:"general"},
+  {w:"suitable",t:"מתאים",ex:"This dress is suitable for the party.",lvl:2,cat:"general"},
+  {w:"finally",t:"לבסוף",ex:"We finally arrived home.",lvl:2,cat:"general"},
+  {w:"softly",t:"ברכות",ex:"She spoke softly so no one would wake up.",lvl:2,cat:"general"},
+  {w:"hero",t:"גיבור",ex:"The firefighter was a real hero.",lvl:2,cat:"general"},
+  {w:"innocent",t:"חף מפשע",ex:"The man said he was innocent.",lvl:2,cat:"general"},
+  {w:"guest",t:"אורח",ex:"We are expecting a guest for dinner.",lvl:3,cat:"general"},
+  {w:"fail",t:"להיכשל",ex:"He was afraid to fail the test.",lvl:3,cat:"general"},
+  {w:"doubt",t:"ספק",ex:"I have no doubt that she will succeed.",lvl:3,cat:"general"},
+  {w:"friendship",t:"חברות",ex:"Their friendship lasted for many years.",lvl:3,cat:"general"},
+  {w:"choice",t:"בחירה",ex:"It was a difficult choice to make.",lvl:3,cat:"general"},
+  {w:"general",t:"כללי",ex:"He gave a general answer, not a specific one.",lvl:3,cat:"general"},
+  {w:"cushion",t:"כרית",ex:"She put a soft cushion on the chair.",lvl:3,cat:"general"},
+  {w:"dictation",t:"הכתבה",ex:"We had a spelling dictation in class.",lvl:3,cat:"general"},
+  {w:"treasure",t:"אוצר",ex:"They searched for hidden treasure.",lvl:3,cat:"general"},
+  {w:"eyebrow",t:"גבה",ex:"He raised his eyebrow in surprise.",lvl:3,cat:"general"},
+  {w:"extraordinary",t:"יוצא דופן",ex:"She has an extraordinary talent for music.",lvl:3,cat:"general"},
+  {w:"discussion",t:"דיון",ex:"We had a long discussion about the plan.",lvl:3,cat:"general"},
+  {w:"imagination",t:"דמיון",ex:"Children have a wonderful imagination.",lvl:3,cat:"general"},
+  {w:"praise",t:"שבח / לשבח",ex:"The teacher gave the class praise for their effort.",lvl:3,cat:"general"},
+  {w:"scene",t:"סצנה / מראה",ex:"The final scene of the movie was exciting.",lvl:3,cat:"general"},
+  {w:"obey",t:"לציית",ex:"Soldiers must obey their commander.",lvl:3,cat:"general"},
+  {w:"sew",t:"לתפור",ex:"My grandmother taught me how to sew.",lvl:3,cat:"general"},
+  {w:"worn",t:"שחוק / לבוש (עבר)",ex:"His shoes were old and worn.",lvl:3,cat:"general"},
+  {w:"double",t:"כפול",ex:"He ordered a double portion of rice.",lvl:3,cat:"general"},
+  {w:"echo",t:"הד",ex:"We heard an echo in the cave.",lvl:3,cat:"general"},
+  {w:"heaven",t:"גן עדן / שמיים",ex:"The view from the hill felt like heaven.",lvl:3,cat:"general"},
+  {w:"mixture",t:"תערובת",ex:"She stirred the mixture in the bowl.",lvl:3,cat:"general"},
+  {w:"persuade",t:"לשכנע",ex:"He tried to persuade her to stay.",lvl:3,cat:"general"},
+  {w:"citizen",t:"אזרח",ex:"Every citizen has the right to vote.",lvl:3,cat:"general"},
+  {w:"international",t:"בינלאומי",ex:"It was an international competition.",lvl:3,cat:"general"},
+  {w:"disappearance",t:"היעלמות",ex:"No one could explain the ship's disappearance.",lvl:3,cat:"general"},
+  {w:"development",t:"התפתחות",ex:"The city saw rapid development this year.",lvl:3,cat:"general"},
+  {w:"equipment",t:"ציוד",ex:"We need special equipment for this project.",lvl:3,cat:"general"},
+  {w:"archeologist",t:"ארכיאולוג",ex:"The archeologist found an ancient coin.",lvl:3,cat:"general"},
+  {w:"nowadays",t:"בימינו",ex:"Nowadays, everyone uses smartphones.",lvl:3,cat:"general"},
+  {w:"groceries",t:"מצרכים",ex:"I need to buy groceries for the week.",lvl:3,cat:"general"},
+  {w:"principal",t:"מנהל/ת בית ספר",ex:"The principal spoke at the school assembly.",lvl:3,cat:"general"},
+  {w:"science",t:"מדע",ex:"Science class is my favorite subject.",lvl:3,cat:"general"},
+  {w:"conclusion",t:"מסקנה",ex:"We reached a conclusion after the discussion.",lvl:3,cat:"general"},
+  {w:"express",t:"לבטא",ex:"It is hard to express how happy I am.",lvl:3,cat:"general"},
+  {w:"it doesn't matter",t:"זה לא משנה",ex:"It doesn't matter what time we arrive.",lvl:3,cat:"general"},
+  {w:"make a living",t:"להתפרנס",ex:"She makes a living as a teacher.",lvl:3,cat:"general"},
+  // general - round 3 (Reading of Words lists, Synonyms exercise)
+  {w:"said",t:"אמר (עבר)",ex:"She said hello to everyone.",lvl:1,cat:"general"},
+  {w:"ship",t:"אונייה",ex:"The ship sailed across the ocean.",lvl:1,cat:"general"},
+  {w:"clock",t:"שעון (קיר)",ex:"The clock on the wall stopped working.",lvl:1,cat:"general"},
+  {w:"thin",t:"דק / רזה",ex:"The paper was very thin.",lvl:1,cat:"general"},
+  {w:"dig",t:"לחפור",ex:"The dog likes to dig in the garden.",lvl:1,cat:"general"},
+  {w:"ring",t:"טבעת",ex:"She wears a gold ring.",lvl:1,cat:"general"},
+  {w:"gate",t:"שער",ex:"Please close the gate behind you.",lvl:1,cat:"general"},
+  {w:"money",t:"כסף",ex:"He saved money to buy a bike.",lvl:1,cat:"general"},
+  {w:"oil",t:"שמן",ex:"We cook with olive oil.",lvl:1,cat:"general"},
+  {w:"paper",t:"נייר",ex:"Write your name on the paper.",lvl:1,cat:"general"},
+  {w:"coat",t:"מעיל",ex:"Wear a coat, it's cold outside.",lvl:1,cat:"general"},
+  {w:"brick",t:"לבנה (בנייה)",ex:"The house is made of brick.",lvl:1,cat:"general"},
+  {w:"box",t:"קופסה",ex:"She put the toys in a box.",lvl:1,cat:"general"},
+  {w:"van",t:"רכב מסחרי",ex:"The delivery van stopped outside.",lvl:1,cat:"general"},
+  {w:"big",t:"גדול",ex:"They live in a big house.",lvl:1,cat:"general"},
+  {w:"little",t:"קטן",ex:"A little dog followed us home.",lvl:1,cat:"general"},
+  {w:"job",t:"עבודה / תפקיד",ex:"She got a new job last week.",lvl:1,cat:"general"},
+  {w:"angry",t:"כועס",ex:"He was angry about the delay.",lvl:1,cat:"general"},
+  {w:"finish",t:"לסיים",ex:"I need to finish my homework.",lvl:1,cat:"general"},
+  {w:"wood",t:"עץ (חומר)",ex:"The table is made of wood.",lvl:2,cat:"general"},
+  {w:"switch",t:"מתג",ex:"Turn on the light switch.",lvl:2,cat:"general"},
+  {w:"carpet",t:"שטיח",ex:"The carpet in the living room is red.",lvl:2,cat:"general"},
+  {w:"skin",t:"עור (גוף)",ex:"Use cream to protect your skin.",lvl:2,cat:"general"},
+  {w:"glove",t:"כפפה",ex:"She wore gloves because it was cold.",lvl:2,cat:"general"},
+  {w:"army",t:"צבא",ex:"He joined the army last year.",lvl:2,cat:"general"},
+  {w:"building",t:"בניין",ex:"They work in a tall building.",lvl:2,cat:"general"},
+  {w:"travel",t:"לטייל / לנסוע",ex:"We love to travel in the summer.",lvl:2,cat:"general"},
+  {w:"climb",t:"לטפס",ex:"The children love to climb trees.",lvl:2,cat:"general"},
+  {w:"shadow",t:"צל",ex:"The tree cast a long shadow.",lvl:2,cat:"general"},
+  {w:"whisper",t:"ללחוש",ex:"She whispered the secret to her friend.",lvl:2,cat:"general"},
+  {w:"believe",t:"להאמין",ex:"I believe you can do it.",lvl:2,cat:"general"},
+  {w:"invite",t:"להזמין",ex:"We will invite all our friends to the party.",lvl:2,cat:"general"},
+  {w:"enemy",t:"אויב",ex:"The two countries were once enemies.",lvl:2,cat:"general"},
+  {w:"favor",t:"טובה / חן",ex:"Can you do me a favor?",lvl:2,cat:"general"},
+  {w:"heal",t:"להחלים / לרפא",ex:"The wound will heal in a few days.",lvl:2,cat:"general"},
+  {w:"afraid",t:"מפחד",ex:"She is afraid of the dark.",lvl:2,cat:"general"},
+  {w:"amaze",t:"להפתיע / להדהים",ex:"The magic trick will amaze you.",lvl:2,cat:"general"},
+  {w:"kind",t:"אדיב / סוג",ex:"He is a very kind person.",lvl:2,cat:"general"},
+  {w:"pretty",t:"יפה",ex:"She wore a pretty dress.",lvl:2,cat:"general"},
+  {w:"tidy",t:"מסודר",ex:"Please keep your room tidy.",lvl:2,cat:"general"},
+  {w:"horrible",t:"נורא",ex:"The weather was horrible yesterday.",lvl:3,cat:"general"},
+  {w:"exhausted",t:"מותש",ex:"After the long run, she felt exhausted.",lvl:3,cat:"general"},
+  {w:"path",t:"שביל",ex:"We walked along a narrow path.",lvl:3,cat:"general"},
+  {w:"shine",t:"לזרוח",ex:"The sun began to shine after the storm.",lvl:3,cat:"general"},
+  {w:"stumble",t:"למעוד",ex:"He stumbled over a rock on the path.",lvl:3,cat:"general"},
+  {w:"odor",t:"ריח",ex:"A strange odor came from the kitchen.",lvl:3,cat:"general"},
+  // general - round 4 (Words in Sequence, Sounds of Consonants, four/five letter word lists)
+  {w:"sweater",t:"סוודר",ex:"She wore a warm sweater in winter.",lvl:1,cat:"general"},
+  {w:"bottle",t:"בקבוק",ex:"Fill the bottle with water.",lvl:1,cat:"general"},
+  {w:"glass",t:"כוס זכוכית",ex:"He drank a glass of milk.",lvl:1,cat:"general"},
+  {w:"spoon",t:"כפית",ex:"Use a spoon to eat the soup.",lvl:1,cat:"general"},
+  {w:"bell",t:"פעמון",ex:"The school bell rang loudly.",lvl:1,cat:"general"},
+  {w:"fork",t:"מזלג",ex:"She ate the salad with a fork.",lvl:1,cat:"general"},
+  {w:"church",t:"כנסייה",ex:"They visited an old church in town.",lvl:1,cat:"general"},
+  {w:"bath",t:"אמבטיה",ex:"The children love taking a bath.",lvl:1,cat:"general"},
+  {w:"plane",t:"מטוס",ex:"We took a plane to Paris.",lvl:1,cat:"general"},
+  {w:"busy",t:"עסוק",ex:"My father is busy at work today.",lvl:1,cat:"general"},
+  {w:"calendar",t:"לוח שנה",ex:"She marked the date on the calendar.",lvl:2,cat:"general"},
+  {w:"picture",t:"תמונה",ex:"He hung a picture on the wall.",lvl:1,cat:"general"},
+  {w:"thumb",t:"אגודל",ex:"The baby was sucking his thumb.",lvl:2,cat:"general"},
+  {w:"sleep",t:"לישון",ex:"I need to sleep early tonight.",lvl:1,cat:"general"},
+  {w:"smile",t:"חיוך",ex:"She gave me a warm smile.",lvl:1,cat:"general"},
+  {w:"close",t:"לסגור",ex:"Please close the window.",lvl:1,cat:"general"},
+  {w:"bride",t:"כלה",ex:"The bride wore a beautiful white dress.",lvl:2,cat:"general"},
+  {w:"lemon",t:"לימון",ex:"She added lemon to her tea.",lvl:1,cat:"general"},
+  {w:"magic",t:"קסם",ex:"The children watched the magic show.",lvl:1,cat:"general"},
+  {w:"deaf",t:"חירש",ex:"He learned sign language for his deaf friend.",lvl:2,cat:"general"},
+  {w:"silly",t:"טיפשי / מצחיק",ex:"That was a silly mistake.",lvl:1,cat:"general"},
+  {w:"cheap",t:"זול",ex:"This restaurant is cheap and good.",lvl:1,cat:"general"},
+  {w:"crowd",t:"קהל",ex:"A big crowd gathered in the square.",lvl:2,cat:"general"},
+  {w:"point",t:"נקודה",ex:"She made a good point in the discussion.",lvl:2,cat:"general"},
+  {w:"round",t:"עגול",ex:"The table in the kitchen is round.",lvl:1,cat:"general"},
+  {w:"drive",t:"לנהוג",ex:"He likes to drive on weekends.",lvl:1,cat:"general"},
+  {w:"shape",t:"צורה",ex:"The cake was in the shape of a heart.",lvl:2,cat:"general"},
+  {w:"care",t:"אכפתיות / לדאוג",ex:"She takes good care of her plants.",lvl:1,cat:"general"},
+  {w:"love",t:"אהבה",ex:"They fell in love in high school.",lvl:1,cat:"general"},
+  {w:"think",t:"לחשוב",ex:"I think it will rain today.",lvl:1,cat:"general"},
+  {w:"offer",t:"להציע",ex:"They offered me a new job.",lvl:2,cat:"general"},
+  {w:"iron",t:"ברזל",ex:"The gate is made of iron.",lvl:2,cat:"general"},
+  {w:"motorbike",t:"אופנוע",ex:"He rides a motorbike to work.",lvl:2,cat:"general"},
+  {w:"fairy tale",t:"אגדה",ex:"She read her daughter a fairy tale.",lvl:1,cat:"general"},
+  {w:"riddle",t:"חידה",ex:"Can you solve this riddle?",lvl:2,cat:"general"},
+  {w:"sunflower",t:"חמנייה",ex:"The sunflower turns toward the sun.",lvl:1,cat:"general"},
+  {w:"brunch",t:"ארוחת בוקר-צהריים",ex:"We had a big brunch on Saturday.",lvl:2,cat:"general"},
+  {w:"judge",t:"שופט",ex:"The judge listened carefully to both sides.",lvl:2,cat:"general"},
+  {w:"sort",t:"סוג / למיין",ex:"Please sort the papers by date.",lvl:2,cat:"general"},
+  {w:"wine",t:"יין",ex:"They drank wine with dinner.",lvl:1,cat:"general"},
+  {w:"final",t:"סופי / אחרון",ex:"This is the final question.",lvl:2,cat:"general"},
+  {w:"level",t:"רמה",ex:"Her English level improved a lot.",lvl:2,cat:"general"},
+  {w:"university",t:"אוניברסיטה",ex:"She studies medicine at the university.",lvl:2,cat:"general"},
+  {w:"truth",t:"אמת",ex:"He always tells the truth.",lvl:2,cat:"general"},
+  {w:"reach",t:"להגיע",ex:"We will reach the hotel by evening.",lvl:2,cat:"general"},
+  // general - round 5 (Reading of Words, Building Blocks, four/five-letter word lists)
+  {w:"cabin",t:"בקתה",ex:"They stayed in a small cabin in the woods.",lvl:2,cat:"general"},
+  {w:"cane",t:"מקל הליכה",ex:"The old man walked with a cane.",lvl:3,cat:"general"},
+  {w:"debt",t:"חוב",ex:"He worked hard to pay off his debt.",lvl:3,cat:"general"},
+  {w:"ever",t:"אי פעם",ex:"Have you ever been to Paris?",lvl:2,cat:"general"},
+  {w:"fate",t:"גורל",ex:"They believed it was fate that brought them together.",lvl:3,cat:"general"},
+  {w:"fill",t:"למלא",ex:"Please fill the glass with water.",lvl:2,cat:"general"},
+  {w:"fly",t:"לעוף",ex:"Birds fly high in the sky.",lvl:1,cat:"general"},
+  {w:"gain",t:"להשיג / לרכוש",ex:"She worked hard to gain experience.",lvl:3,cat:"general"},
+  {w:"giant",t:"ענק",ex:"The giant lived in a castle on the hill.",lvl:2,cat:"general"},
+  {w:"gift",t:"מתנה",ex:"He gave her a gift for her birthday.",lvl:1,cat:"general"},
+  {w:"lady",t:"גברת",ex:"The lady smiled and said hello.",lvl:1,cat:"general"},
+  {w:"law",t:"חוק",ex:"Everyone must obey the law.",lvl:3,cat:"general"},
+  {w:"listen",t:"להקשיב",ex:"Please listen carefully to the instructions.",lvl:1,cat:"general"},
+  {w:"man",t:"איש",ex:"The man is reading a newspaper.",lvl:1,cat:"general"},
+  {w:"need",t:"צריך",ex:"I need a glass of water.",lvl:1,cat:"general"},
+  {w:"range",t:"טווח",ex:"The mountains stretch across a wide range.",lvl:3,cat:"general"},
+  {w:"run",t:"לרוץ",ex:"The children run in the park every day.",lvl:1,cat:"general"},
+  {w:"see",t:"לראות",ex:"Can you see the birds in the tree?",lvl:1,cat:"general"},
+  {w:"seem",t:"להיראות (כאילו)",ex:"She seems tired today.",lvl:3,cat:"general"},
+  {w:"shoe",t:"נעל",ex:"He put on his shoe before leaving.",lvl:1,cat:"general"},
+  {w:"sword",t:"חרב",ex:"The knight carried a sword.",lvl:2,cat:"general"},
+  {w:"tape",t:"סרט הדבקה",ex:"She used tape to fix the box.",lvl:2,cat:"general"},
+  {w:"tie",t:"עניבה",ex:"He wore a blue tie to the meeting.",lvl:2,cat:"general"},
+  {w:"win",t:"לנצח",ex:"Our team wants to win the game.",lvl:1,cat:"general"},
+  {w:"woman",t:"אישה",ex:"The woman is walking her dog.",lvl:1,cat:"general"},
 ];
 
 /* ---------- הגדרת רמות התחלתיות (tiers) ---------- */
@@ -573,13 +942,42 @@ function gradeToTier(grade) {
   if (grade === "adult") return 4;
   const g = parseInt(grade, 10);
   if (g <= 2) return 1;
-  if (g <= 4) return 2;
-  if (g <= 6) return 3;
+  if (g <= 5) return 2;
+  if (g <= 7) return 3;
   if (g <= 9) return 4;
   return 5;
 }
 
 /* ---------- שאלוני הערכה מותאמים לפי רמה התחלתית ---------- */
+/* ---------- הפכים (Antonyms) ---------- */
+const OPPOSITES = [
+  {w:"up",t:"למעלה",opp:"down",oppT:"למטה",lvl:1},
+  {w:"in",t:"בפנים",opp:"out",oppT:"בחוץ",lvl:1},
+  {w:"day",t:"יום",opp:"night",oppT:"לילה",lvl:1},
+  {w:"hot",t:"חם",opp:"cold",oppT:"קר",lvl:1},
+  {w:"big",t:"גדול",opp:"small",oppT:"קטן",lvl:1},
+  {w:"happy",t:"שמח",opp:"sad",oppT:"עצוב",lvl:1},
+  {w:"open",t:"פתוח",opp:"closed",oppT:"סגור",lvl:1},
+  {w:"wet",t:"רטוב",opp:"dry",oppT:"יבש",lvl:1},
+  {w:"fast",t:"מהיר",opp:"slow",oppT:"איטי",lvl:1},
+  {w:"first",t:"ראשון",opp:"last",oppT:"אחרון",lvl:1},
+  {w:"over",t:"מעל",opp:"under",oppT:"מתחת",lvl:2},
+  {w:"rich",t:"עשיר",opp:"poor",oppT:"עני",lvl:2},
+  {w:"left",t:"שמאל",opp:"right",oppT:"ימין",lvl:2},
+  {w:"heavy",t:"כבד",opp:"light",oppT:"קל",lvl:2},
+  {w:"noisy",t:"רועש",opp:"quiet",oppT:"שקט",lvl:2},
+  {w:"give",t:"לתת",opp:"take",oppT:"לקחת",lvl:2},
+  {w:"push",t:"לדחוף",opp:"pull",oppT:"למשוך",lvl:2},
+  {w:"stop",t:"לעצור",opp:"go",oppT:"ללכת",lvl:2},
+  {w:"lost",t:"אבוד",opp:"found",oppT:"נמצא",lvl:2},
+  {w:"many",t:"הרבה",opp:"few",oppT:"מעט",lvl:2},
+  {w:"rise",t:"לעלות",opp:"fall",oppT:"לרדת",lvl:3},
+  {w:"complete",t:"שלם",opp:"broken",oppT:"שבור",lvl:3},
+  {w:"work",t:"לעבוד",opp:"play",oppT:"לשחק",lvl:3},
+  {w:"clean",t:"נקי",opp:"dirty",oppT:"מלוכלך",lvl:3},
+  {w:"tidy",t:"מסודר",opp:"messy",oppT:"מבולגן",lvl:3},
+];
+
 const QUIZ_SETS = {
   // tier 1 — מתחילים: זיהוי אותיות + הקראת מילים בסיסיות (צבעים, בני משפחה)
   1: [
@@ -604,6 +1002,8 @@ const QUIZ_SETS = {
     {q:"מה המשמעות של המילה 'bus'?", opts:["רכבת","אוטובוס","מפה","כרטיס"], correct:1, cat:"travel"},
     {q:"מה המשמעות של המילה 'happy'?", opts:["עצוב","שמח","עייף","כועס"], correct:1, cat:"feelings"},
     {q:"מה המשמעות של המילה 'teacher'?", opts:["תלמיד","מורה","הורה","שכן"], correct:1, cat:"work"},
+    {q:"מה המשמעות של המילה 'they'?", opts:["הם / הן","אני","אתה","אנחנו"], correct:0, cat:"grammar"},
+    {q:"מה המשמעות של המילה 'we'?", opts:["אנחנו","הוא","את","הם"], correct:0, cat:"grammar"},
   ],
   // tier 3 — שליטה טובה
   3: [
@@ -643,7 +1043,7 @@ const QUIZ_SETS = {
 /* ---------- מצב ופרסיסטנטיות ---------- */
 const STORAGE_KEY = "milon-baderech-progress-v2";
 function loadState() {
-  const defaults = { profile:{name:"",age:""}, level:null, tier:null, mastered:{}, categoryStats:{}, highscores:{speed:0,spelling:0,matchingBestMoves:null,listening:0,sentence:0}, streak:0, lastVisit:null, badgesSeen:[] };
+  const defaults = { profile:{name:"",age:""}, level:null, tier:null, mastered:{}, categoryStats:{}, highscores:{speed:0,spelling:0,matchingBestMoves:null,listening:0,sentence:0,opposites:0}, streak:0, lastVisit:null, badgesSeen:[] };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -722,12 +1122,37 @@ function startTierQuiz(tierId) {
 function renderQuizQuestion() {
   const q = currentQuiz[quizIndex];
   document.getElementById('quiz-progress').style.width = (quizIndex / currentQuiz.length * 100) + '%';
-  document.getElementById('quiz-question').textContent = q.q;
+  const quizQEl = document.getElementById('quiz-question');
+  quizQEl.textContent = q.q;
+  if (currentTier <= 2) {
+    const quoted = q.q.match(/'([A-Za-z]+)'/);
+    if (quoted) {
+      const btn = document.createElement('button');
+      btn.className = 'speak-mini';
+      btn.textContent = '🔊';
+      btn.onclick = () => speak(quoted[1]);
+      quizQEl.appendChild(document.createTextNode(' '));
+      quizQEl.appendChild(btn);
+    }
+  }
   const optsDiv = document.getElementById('quiz-options');
   optsDiv.innerHTML = '';
   q.opts.forEach((opt, i) => {
     const b = document.createElement('button');
-    b.className = 'option'; b.textContent = opt;
+    b.className = 'option';
+    if (currentTier <= 2 && /^[A-Za-z]+$/.test(opt)) {
+      const span = document.createElement('span');
+      span.textContent = opt;
+      const speakSpan = document.createElement('span');
+      speakSpan.className = 'speak-mini';
+      speakSpan.textContent = '🔊';
+      speakSpan.onclick = (e) => { e.stopPropagation(); speak(opt); };
+      b.appendChild(span);
+      b.appendChild(document.createTextNode(' '));
+      b.appendChild(speakSpan);
+    } else {
+      b.textContent = opt;
+    }
     b.onclick = () => answerQuiz(i);
     optsDiv.appendChild(b);
   });
@@ -794,7 +1219,7 @@ function goHome() {
 }
 
 function restartAll() {
-  state = { profile:{name:"",age:""}, level:null, tier:null, mastered:{}, categoryStats:{}, highscores:{speed:0,spelling:0,matchingBestMoves:null,listening:0,sentence:0}, streak:state.streak, lastVisit:state.lastVisit, badgesSeen:[] };
+  state = { profile:{name:"",age:""}, level:null, tier:null, mastered:{}, categoryStats:{}, highscores:{speed:0,spelling:0,matchingBestMoves:null,listening:0,sentence:0,opposites:0}, streak:state.streak, lastVisit:state.lastVisit, badgesSeen:[] };
   saveState();
   showScreen('screen-welcome');
 }
@@ -818,6 +1243,7 @@ function showAchievements() {
   document.getElementById('achv-matching').textContent = state.highscores.matchingBestMoves === null ? "-" : state.highscores.matchingBestMoves;
   document.getElementById('achv-listening').textContent = state.highscores.listening;
   document.getElementById('achv-sentence').textContent = state.highscores.sentence;
+  document.getElementById('achv-opposites').textContent = state.highscores.opposites;
 
   const totalMastered = Object.values(state.mastered).filter(v => v).length;
   const badges = [
@@ -1192,6 +1618,61 @@ function finishSentence() {
   showScreen('screen-sentence-done');
 }
 
+/* ---------- משחק הפכים ---------- */
+let oppList = [], oppIndex = 0, oppScore = 0;
+
+function startOpposites() {
+  const pool = OPPOSITES.filter(o => o.lvl === state.level);
+  oppList = (pool.length ? pool : OPPOSITES).sort(() => Math.random()-0.5).slice(0, 8);
+  oppIndex = 0; oppScore = 0;
+  showScreen('screen-opposites');
+  renderOppQuestion();
+}
+
+function renderOppQuestion() {
+  const item = oppList[oppIndex];
+  document.getElementById('opp-progress').style.width = (oppIndex / oppList.length * 100) + '%';
+  const qEl = document.getElementById('opp-question');
+  qEl.innerHTML = '';
+  qEl.appendChild(document.createTextNode("מה ההפך של "));
+  const engSpan = document.createElement('span');
+  engSpan.className = 'eng';
+  engSpan.textContent = "'" + item.w + "'";
+  qEl.appendChild(engSpan);
+  qEl.appendChild(document.createTextNode("?"));
+  const optsDiv = document.getElementById('opp-options');
+  optsDiv.innerHTML = '';
+  let wrongOpts = OPPOSITES.filter(o => o.oppT !== item.oppT).sort(() => Math.random()-0.5).slice(0,3).map(o => o.oppT);
+  const opts = [item.oppT, ...wrongOpts].sort(() => Math.random()-0.5);
+  opts.forEach(opt => {
+    const b = document.createElement('button');
+    b.className = 'option'; b.textContent = opt;
+    b.onclick = () => {
+      const buttons = document.querySelectorAll('#opp-options .option');
+      buttons.forEach(bb => bb.onclick = null);
+      if (opt === item.oppT) { oppScore++; b.classList.add('correct'); }
+      else {
+        b.classList.add('wrong');
+        buttons.forEach(bb => { if (bb.textContent === item.oppT) bb.classList.add('correct'); });
+      }
+      setTimeout(() => {
+        oppIndex++;
+        if (oppIndex < oppList.length) renderOppQuestion(); else finishOpposites();
+      }, 800);
+    };
+    optsDiv.appendChild(b);
+  });
+}
+
+function finishOpposites() {
+  document.getElementById('opp-progress').style.width = '100%';
+  const isNewHigh = oppScore > state.highscores.opposites;
+  if (isNewHigh) { state.highscores.opposites = oppScore; saveState(); }
+  document.getElementById('opp-done-title').textContent = oppScore + " מתוך " + oppList.length + " נכונות";
+  document.getElementById('opp-done-feedback').textContent = isNewHigh ? "שיא חדש! כל הכבוד." : ("השיא שלכם הוא " + state.highscores.opposites + " — המשיכו לתרגל.");
+  showScreen('screen-opposites-done');
+}
+
 /* ---------- קריאת טקסטים ---------- */
 const READING = {
   1: [{
@@ -1211,6 +1692,24 @@ const READING = {
       {q:"When did they pack their luggage?", opts:["In the morning","The night before","During the trip","They didn't pack"], correct:1},
       {q:"What did Maya take photos of?", opts:["Her friends","The river and trees","The airport","Her house"], correct:1},
     ]
+  },{
+    title: "My Rock Collection",
+    text: "My hobby is collecting rocks. I started three years ago, when I was eight years old. I keep my rocks in a small wooden box next to my bed. Every time my family goes on a trip, I look for new rocks to add to my collection. Last month I found a smooth black rock next to a river. My favorite rocks are white, orange, and grey. I have forty two rocks now, and I hope to find many more.",
+    questions: [
+      {q:"How old was the writer when the hobby started?", opts:["Three","Eight","Forty two","Twelve"], correct:1},
+      {q:"Where does the writer keep the rocks?", opts:["In a bag","In a wooden box","In the garden","At school"], correct:1},
+      {q:"Where did the writer find the black rock?", opts:["At school","Next to a river","In a shop","In the garden"], correct:1},
+      {q:"How many rocks does the writer have now?", opts:["Eight","Three","Forty two","One hundred"], correct:2},
+    ]
+  },{
+    title: "A Day at the Office",
+    text: "My name is Ms. Cohen. I work as a secretary at a small law office. I am usually a little disorganized, so I am often late for work in the morning. I get to the office at nine and start by opening the mail. In the late morning I answer phone calls and type letters for my boss. I take a short break at noon and eat a sandwich at my desk. In the afternoon I water the office plants and feed the fish in the small tank near the window. By five o'clock I finish my work and go home.",
+    questions: [
+      {q:"Where does Ms. Cohen work?", opts:["A school","A law office","A restaurant","A hospital"], correct:1},
+      {q:"What does she do first at the office?", opts:["Answers the phone","Opens the mail","Eats lunch","Waters the plants"], correct:1},
+      {q:"When does she eat her sandwich?", opts:["In the morning","At noon","In the afternoon","At five o'clock"], correct:1},
+      {q:"What does she do in the afternoon?", opts:["Types letters only","Waters plants and feeds fish","Goes home early","Answers the mail"], correct:1},
+    ]
   }],
   3: [{
     title: "Working Toward Sustainability",
@@ -1219,6 +1718,23 @@ const READING = {
       {q:"What are companies trying to achieve?", opts:["Higher prices","More sustainability","Less collaboration","Fewer employees"], correct:1},
       {q:"How might employees feel about change at first?", opts:["Excited only","Overwhelmed","Angry","Bored"], correct:1},
       {q:"What does the text suggest happens over time?", opts:["Teams give up","Teams become more confident","Companies close","Nothing changes"], correct:1},
+    ]
+  },{
+    title: "City or Suburb",
+    text: "Choosing where to live is a personal decision. Some people work in the city but choose to live in a quieter suburb instead. Every weekday, they drive to their office, even though the traffic can be heavy and the drive can take a long time. Many of them say the extra space and the calmer streets are worth the long commute. Other people prefer to stay close to their jobs and live right in the city. They enjoy being near restaurants, museums, and public transportation, and they don't mind a smaller home in exchange for that convenience.",
+    questions: [
+      {q:"Why do some people choose to live in the suburbs?", opts:["Shorter commute","Extra space and calmer streets","Cheaper restaurants","No traffic at all"], correct:1},
+      {q:"What is one disadvantage mentioned for suburb life?", opts:["No parks","A long commute","No neighbors","No stores"], correct:1},
+      {q:"Why might someone prefer living in the city?", opts:["Bigger homes","Being near restaurants and transportation","Less traffic","Lower rent"], correct:1},
+    ]
+  },{
+    title: "Amazing Facts About Kangaroos",
+    text: "Kangaroos live in groups with strong social bonds, and a female often stays close to her mother even after she has babies of her own. In the wild, kangaroos usually live for about ten years, but in captivity they can live much longer. A baby kangaroo is called a joey. It stays inside its mother's pouch for several months before it starts to peek outside, and it keeps returning to the pouch to feed long after it first leaves. Kangaroos cannot see very well up close, but they can notice the smallest movement from far away, which helps them escape from predators. They mainly eat grass and leaves, and although they are usually calm, they can become aggressive if they feel threatened.",
+    questions: [
+      {q:"What is a baby kangaroo called?", opts:["A cub","A joey","A calf","A pup"], correct:1},
+      {q:"How do kangaroos usually escape from predators?", opts:["By hiding underground","By noticing movement from far away","By climbing trees","By swimming away"], correct:1},
+      {q:"What do kangaroos mainly eat?", opts:["Meat","Fish","Grass and leaves","Insects"], correct:2},
+      {q:"When might a kangaroo become aggressive?", opts:["When it is hungry","When it feels threatened","When it is sleepy","Never"], correct:1},
     ]
   }],
 };
